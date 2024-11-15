@@ -1083,9 +1083,9 @@ QvisRenderingWindow::UpdateOptions(bool doAll)
         case RenderingAttributes::ID_anariRendering:
             anariRenderingWidget->SetChecked(renderAtts->GetAnariRendering());
             break;
-        case RenderingAttributes::ID_anariSPP:
-            anariRenderingWidget->UpdateDenoiserSelection(renderAtts->GetUseAnariDenoiser());
-            break;
+        // case RenderingAttributes::ID_anariSPP:
+        //     anariRenderingWidget->UpdateDenoiserSelection(renderAtts->GetUseAnariDenoiser());
+        //     break;
         case RenderingAttributes::ID_anariLibrary:
             anariRenderingWidget->UpdateLibraryName(renderAtts->GetAnariLibrary());
             break;
@@ -1096,43 +1096,43 @@ QvisRenderingWindow::UpdateOptions(bool doAll)
             anariRenderingWidget->UpdateRendererSubtypes(renderAtts->GetAnariRendererSubtype());
             break;
         case RenderingAttributes::ID_anariLightFalloff:
-            anariRenderingWidget->UpdateLightFalloff(renderAtts->GetAnariLightFalloff());
+            // anariRenderingWidget->UpdateLightFalloff(renderAtts->GetAnariLightFalloff());
             break;
         case RenderingAttributes::ID_anariAmbientIntensity:
-            anariRenderingWidget->UpdateAmbientIntensity(renderAtts->GetAnariAmbientIntensity());
+            // anariRenderingWidget->UpdateAmbientIntensity(renderAtts->GetAnariAmbientIntensity());
             break;
         case RenderingAttributes::ID_anariMaxDepth:
-            anariRenderingWidget->UpdateMaxDepth(renderAtts->GetAnariMaxDepth());
+            // anariRenderingWidget->UpdateMaxDepth(renderAtts->GetAnariMaxDepth());
             break;
         case RenderingAttributes::ID_anariRValue:
-            anariRenderingWidget->UpdateRValue(renderAtts->GetAnariRValue());
+            // anariRenderingWidget->UpdateRValue(renderAtts->GetAnariRValue());
             break;
         case RenderingAttributes::ID_anariDebugMethod:
-            anariRenderingWidget->UpdateDebugMethod(renderAtts->GetAnariDebugMethod());
+            // anariRenderingWidget->UpdateDebugMethod(renderAtts->GetAnariDebugMethod());
             break;
         case RenderingAttributes::ID_usdDir:
-            anariRenderingWidget->UpdateUSDOutputLocation(renderAtts->GetUsdDir());
+            // anariRenderingWidget->UpdateUSDOutputLocation(renderAtts->GetUsdDir());
             break;
         case RenderingAttributes::ID_usdAtCommit:
-            anariRenderingWidget->UpdateUSDParameter(USDParameter::COMMIT, renderAtts->GetUsdAtCommit());
+            // anariRenderingWidget->UpdateUSDParameter(USDParameter::COMMIT, renderAtts->GetUsdAtCommit());
             break;
         case RenderingAttributes::ID_usdOutputBinary:
-            anariRenderingWidget->UpdateUSDParameter(USDParameter::BINARY, renderAtts->GetUsdOutputBinary());
+            // anariRenderingWidget->UpdateUSDParameter(USDParameter::BINARY, renderAtts->GetUsdOutputBinary());
             break;
         case RenderingAttributes::ID_usdOutputMaterial:
-            anariRenderingWidget->UpdateUSDParameter(USDParameter::MATERIAL, renderAtts->GetUsdOutputMaterial());
+            // anariRenderingWidget->UpdateUSDParameter(USDParameter::MATERIAL, renderAtts->GetUsdOutputMaterial());
             break;
         case RenderingAttributes::ID_usdOutputPreviewSurface:
-            anariRenderingWidget->UpdateUSDParameter(USDParameter::PREVIEW, renderAtts->GetUsdOutputPreviewSurface());
+            // anariRenderingWidget->UpdateUSDParameter(USDParameter::PREVIEW, renderAtts->GetUsdOutputPreviewSurface());
             break;
         case RenderingAttributes::ID_usdOutputMDL:
-            anariRenderingWidget->UpdateUSDParameter(USDParameter::MDL, renderAtts->GetUsdOutputMDL());
+            // anariRenderingWidget->UpdateUSDParameter(USDParameter::MDL, renderAtts->GetUsdOutputMDL());
             break;
         case RenderingAttributes::ID_usdOutputMDLColors:
-            anariRenderingWidget->UpdateUSDParameter(USDParameter::MDLCOLORS, renderAtts->GetUsdOutputMDLColors());
+            // anariRenderingWidget->UpdateUSDParameter(USDParameter::MDLCOLORS, renderAtts->GetUsdOutputMDLColors());
             break;
         case RenderingAttributes::ID_usdOutputDisplayColors:
-            anariRenderingWidget->UpdateUSDParameter(USDParameter::DISPLAY, renderAtts->GetUsdOutputDisplayColors());
+            // anariRenderingWidget->UpdateUSDParameter(USDParameter::DISPLAY, renderAtts->GetUsdOutputDisplayColors());
             break;
 #endif
         case RenderingAttributes::ID_scalableActivationMode:

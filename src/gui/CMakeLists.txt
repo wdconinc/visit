@@ -42,7 +42,7 @@
 #   Disable qt6 forcing of defines for UNICODE.
 #
 #   Kevin Griffin, Thu 26 Oct 2023 09:51:22 AM PDT
-#   Added anari/AnariRenderingWidget
+#   Added anari/AnariRenderingWidget, anari/AnariParameterInfo
 #
 #****************************************************************************
 
@@ -213,7 +213,8 @@ mini3D.C
 
 if(VISIT_ANARI)
     list(APPEND GUILIB_SOURCES
-            anari/AnariRenderingWidget.C)
+            anari/AnariRenderingWidget.C
+            anari/AnariParameterInfo.C)
 endif(VISIT_ANARI)
 
 IF (NOT WIN32)
