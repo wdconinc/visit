@@ -121,16 +121,6 @@ AnariRenderingWidget::AnariRenderingWidget(QvisRenderingWindow *qrw,
     dynamicLayouts = new QStackedLayout();
     dynamicLayouts->addWidget(new QWidget(this)); // Placeholder for index 0
 
-    // Create and add the back-end specific widgets
-    // int rows1 = 0;
-    // backendStackedLayout->addWidget(CreateBackendWidget(rows1));
-
-    // // Create USD back-end widgets
-    // int rows2 = 0;
-    // backendStackedLayout->addWidget(CreateUSDWidget(rows2));
-
-    // totalRows += std::max(rows1, rows2);
-
     renderingGroupVBoxLayout->addLayout(dynamicLayouts);
     mainLayout->addWidget(renderingGroup);
 
@@ -209,11 +199,31 @@ AnariRenderingWidget::CreateGeneralWidget(int &rows)
     return generalOptionsWidget;
 }
 
+// ****************************************************************************
+// Method: AnariRenderingWidget::MakeWidgetFromParameterInfo
+//
+// Purpose:
+//   Creates the individual UI element from the parameter information obtained
+//   from ANARI's object introspection.
+//
+// Arguments:
+//   paramInfo  Contains information (description, min, max, default value, etc.)
+//              about the parameter.
+//
+// Programmer:  Kevin Griffin
+// Creation:    Fri Mar 11 12:27:45 PDT 2022
+//
+// Modifications:
+//
+// ****************************************************************************
+
 QWidget *
 AnariRenderingWidget::MakeWidgetFromParameterInfo(const AnariParameterInfo &paramInfo)
 {
     if(paramInfo.GetName() == "name" || paramInfo.GetName() == "background")
     {
+        // Skip these parameters
+        // name is used internally for USD and background is handled by VisIt
         return nullptr;
     }
 
@@ -230,25 +240,23 @@ AnariRenderingWidget::MakeWidgetFromParameterInfo(const AnariParameterInfo &para
                 spinBox->setValue(*intPtr);
             }
 
+            int min = std::numeric_limits<int>::min();
+            int max = std::numeric_limits<int>::max();
+
             if(paramInfo.HasMinimum())
             {
                 auto minPtr = static_cast<const int *>(paramInfo.m_minimum);
-                spinBox->setMinimum(*minPtr);
-            }
-            else
-            {
-                spinBox->setMinimum(std::numeric_limits<int>::min());
+                min = *minPtr;
             }
 
             if(paramInfo.HasMaximum())
             {
                 auto maxPtr = static_cast<const int *>(paramInfo.m_maximum);
-                spinBox->setMaximum(*maxPtr);
+                max = *maxPtr;
             }
-            else
-            {
-                spinBox->setMaximum(std::numeric_limits<int>::max());
-            }
+
+            spinBox->setMinimum(min);
+            spinBox->setMaximum(max);
 
             connect(spinBox, QOverload<int>::of(&QSpinBox::valueChanged),
                     this, &AnariRenderingWidget::spinBoxValueChanged);
@@ -299,8 +307,8 @@ AnariRenderingWidget::MakeWidgetFromParameterInfo(const AnariParameterInfo &para
 
             if(paramInfo.m_defaultValue)
             {
-                auto floatPtr = static_cast<const double *>(paramInfo.m_defaultValue);
-                lineEdit->setText(QString::number(*floatPtr));
+                auto doublePtr = static_cast<const double *>(paramInfo.m_defaultValue);
+                lineEdit->setText(QString::number(*doublePtr));
             }
 
             if(paramInfo.HasMinimum())
@@ -339,6 +347,7 @@ AnariRenderingWidget::MakeWidgetFromParameterInfo(const AnariParameterInfo &para
 
                 connect(comboBox, QOverload<const QString &>::of(&QComboBox::currentTextChanged),
                         this, &AnariRenderingWidget::comboBoxTextChanged);
+
                 return comboBox;
             }
 
@@ -352,6 +361,7 @@ AnariRenderingWidget::MakeWidgetFromParameterInfo(const AnariParameterInfo &para
 
             connect(lineEdit, &QLineEdit::editingFinished,
                     this, &AnariRenderingWidget::lineEditingFinished);
+
             return lineEdit;
         }
         case ANARI_BOOL:
@@ -359,7 +369,7 @@ AnariRenderingWidget::MakeWidgetFromParameterInfo(const AnariParameterInfo &para
             QCheckBox *checkBox = new QCheckBox(paramInfo.GetName().c_str());
             checkBox->setObjectName(paramInfo.GetName().c_str());
 
-            std::string toolTip = paramInfo.GetDescription();
+            auto toolTip = paramInfo.GetDescription();
 
             if(!toolTip.empty())
             {
@@ -368,12 +378,13 @@ AnariRenderingWidget::MakeWidgetFromParameterInfo(const AnariParameterInfo &para
 
             if(paramInfo.m_defaultValue)
             {
-                auto boolPtr = static_cast<const bool *>(paramInfo.m_defaultValue);
-                checkBox->setChecked(*boolPtr);
+                auto boolPtr = static_cast<const int32_t *>(paramInfo.m_defaultValue);
+                checkBox->setChecked(boolPtr && *boolPtr);
             }
 
             connect(checkBox, &QCheckBox::toggled,
                     this, &AnariRenderingWidget::checkBoxToggled);
+
             return checkBox;
         }
         default:
@@ -383,10 +394,31 @@ AnariRenderingWidget::MakeWidgetFromParameterInfo(const AnariParameterInfo &para
 
             connect(lineEdit, &QLineEdit::editingFinished,
                     this, &AnariRenderingWidget::lineEditingFinished);
+
             return lineEdit;
         }
     }
 }
+
+// ****************************************************************************
+// Method: AnariRenderingWidget::CreateDynamicWidget
+//
+// Purpose:
+//   Creates the panel for the dynamic parameters of the selected back-end,
+//   back-end subtype, and renderer subtype.
+//
+// Arguments:
+//   anariDevice  The ANARI device
+//   subtype      The renderer subtype
+//   key          The key to the dynamic layout map
+//   isUSD        If the back-end is USD
+//
+// Programmer:  Kevin Griffin
+// Creation:    Fri Mar 11 12:27:45 PDT 2022
+//
+// Modifications:
+//
+// ****************************************************************************
 
 void
 AnariRenderingWidget::CreateDynamicWidget(anari::Device anariDevice, const char *subtype, const std::string &key, bool isUSD)
@@ -410,19 +442,19 @@ AnariRenderingWidget::CreateDynamicWidget(anari::Device anariDevice, const char 
 
             const ANARIParameter *parameterList =
                 static_cast<const ANARIParameter*>(anariGetObjectInfo(anariDevice,
-                                                                     ANARI_RENDERER,
-                                                                     subtype,
-                                                                     "parameter",
-                                                                     ANARI_PARAMETER_LIST));
+                                                                      ANARI_RENDERER,
+                                                                      subtype,
+                                                                      "parameter",
+                                                                      ANARI_PARAMETER_LIST));
 
             for(const ANARIParameter *param = parameterList; param && param->name != nullptr; ++param)
             {
                 AnariParameterInfo paramInfo = std::move(GetParameterInfo(anariDevice, ANARI_RENDERER, subtype, param));
 
                 // Create the UI
-                QWidget *layoutWidget = MakeWidgetFromParameterInfo(paramInfo);
+                QWidget *uiWidget = MakeWidgetFromParameterInfo(paramInfo);
 
-                if(layoutWidget == nullptr)
+                if(uiWidget == nullptr)
                 {
                     continue;
                 }
@@ -438,11 +470,11 @@ AnariRenderingWidget::CreateDynamicWidget(anari::Device anariDevice, const char 
                     }
 
                     gridLayout->addWidget(label, rows, cols++, 1, 1);
-                    gridLayout->addWidget(layoutWidget, rows, cols++, 1, 1);
+                    gridLayout->addWidget(uiWidget, rows, cols++, 1, 1);
                 }
                 else
                 {
-                    gridLayout->addWidget(layoutWidget, rows, cols, 1, 2);
+                    gridLayout->addWidget(uiWidget, rows, cols, 1, 2);
                     cols += 2;
                 }
 
@@ -520,6 +552,26 @@ AnariRenderingWidget::GetBackendType(const std::string &libname) const
 
     return BackendType::NONE;
 }
+
+// ****************************************************************************
+// Method: AnariRenderingWidget::GetParameterInfo
+//
+// Purpose:
+//   Gets the parameter information for the given object.
+//
+// Arguments:
+//   device         The ANARI device
+//   objectType     The type of object (Renderer, Camera, etc.)
+//   objectSubtype  The subtype of the object
+//   param          The parameter to get information for
+//
+//
+// Programmer: Kevin Griffin
+// Creation:
+//
+// Modifications:
+//
+// ****************************************************************************
 
 AnariParameterInfo
 AnariRenderingWidget::GetParameterInfo(anari::Device device,
@@ -670,7 +722,7 @@ AnariRenderingWidget::UpdateRendererSubtypes(const std::string subtype)
 }
 
 void
-AnariRenderingWidget::UpdateRendererParams(const stringVector &params)
+AnariRenderingWidget::UpdateParameters(const stringVector &params)
 {
     // TODO: Implement
     // 1. Get the current dynamic widget
@@ -967,8 +1019,110 @@ AnariRenderingWidget::rendererSubtypeChanged(const QString &subtype)
     }
 }
 
+// ****************************************************************************
+// Method: AnariRenderingWidget::spinBoxValueChanged
+//
+// Purpose:
+//      Triggered when a spin box value has changed. Mainly user for the
+//      dynamic UI components.
+//
+// Arguments:
+//      value   The new value of the spin box
+//
+// Programmer:  Kevin Griffin
+// Creation:    Fri Mar 11 12:27:45 PDT 2022
+//
+// Modifications:
+//
+// ****************************************************************************
+
+void AnariRenderingWidget::spinBoxValueChanged(int value)
+{
+    UpdateRenderingAttributes(false);
+}
+
+// ****************************************************************************
+// Method: AnariRenderingWidget::lineEditingFinished
+//
+// Purpose:
+//      Triggered when a line edit value has changed. Mainly used for the
+//      dynamic UI components.
+//
+// Programmer:  Kevin Griffin
+// Creation:    Fri Mar 11 12:27:45 PDT 2022
+//
+// Modifications:
+//
+// ****************************************************************************
+
 void
-AnariRenderingWidget::UpdateRenderingAttributes()
+AnariRenderingWidget::lineEditingFinished()
+{
+    UpdateRenderingAttributes(false);
+}
+
+// ****************************************************************************
+// Method: AnariRenderingWidget::comboBoxTextChanged
+//
+// Purpose:
+//      Triggered when a combo box value has changed.
+//
+// Arguments:
+//      text    The new value of the combo box
+//
+// Programmer:  Kevin Griffin
+// Creation:    Fri Mar 11 12:27:45 PDT 2022
+//
+// Modifications:
+//
+// ****************************************************************************
+
+void
+AnariRenderingWidget::comboBoxTextChanged(const QString &text)
+{
+    UpdateRenderingAttributes(false);
+}
+
+// ****************************************************************************
+// Method: AnariRenderingWidget::checkBoxToggled
+//
+// Purpose:
+//      Triggered when a check box is selected or deselected.
+//
+// Arguments:
+//      checked     If true, the check box is selected
+//
+// Programmer:      Kevin Griffin
+// Creation:        Fri Mar 11 12:27:45 PDT 2022
+//
+// Modifications:
+//
+// ****************************************************************************
+
+void
+AnariRenderingWidget::checkBoxToggled(bool checked)
+{
+    UpdateRenderingAttributes(false);
+}
+
+// ****************************************************************************
+// Method: AnariRenderingWidget::UpdateRenderingAttributes
+//
+// Purpose:
+//      Updates the rendering attributes with the current values from the UI.
+//
+// Arguments:
+//      updateApply If true, the rendering window will be updated
+//
+// Programmer:  Kevin Griffin
+// Creation:    Fri Mar 11 12:27:45 PDT 2022
+//
+// Modifications:
+//
+// ****************************************************************************
+
+void
+AnariRenderingWidget::UpdateRenderingAttributes(const bool updateApply)
 {
     auto widget = dynamicLayouts->currentWidget();
     auto children = widget->findChildren<QWidget *>();
@@ -986,53 +1140,33 @@ AnariRenderingWidget::UpdateRenderingAttributes()
             std::string valStr = name + ":" + std::to_string(val);
             params.push_back(valStr);
         }
-        // else if(qobject_cast<QLineEdit *>(child) != nullptr)
-        // {
-        //     auto lineEdit = qobject_cast<QLineEdit *>(child);
-        //     auto val = lineEdit->text().toFloat();
-        //     renderingAttributes->SetAnariFloat32(name, val);
-        // }
-        // else if(qobject_cast<QCheckBox *>(child) != nullptr)
-        // {
-        //     auto checkBox = qobject_cast<QCheckBox *>(child);
-        //     auto val = checkBox->isChecked();
-        //     renderingAttributes->SetAnariBool(name, val);
-        // }
-        // else if(qobject_cast<QComboBox *>(child) != nullptr)
-        // {
-        //     auto comboBox = qobject_cast<QComboBox *>(child);
-        //     auto val = comboBox->currentText().toStdString();
-        //     renderingAttributes->SetAnariString(name, val);
-        // }
+        else if(qobject_cast<QLineEdit *>(child) != nullptr)
+        {
+            auto lineEdit = qobject_cast<QLineEdit *>(child);
+            auto val = lineEdit->text();
+            std::string valStr = name + ":" + val.toStdString();
+            params.push_back(valStr);
+        }
+        else if(qobject_cast<QCheckBox *>(child) != nullptr)
+        {
+            auto checkBox = qobject_cast<QCheckBox *>(child);
+            auto val = checkBox->isChecked() ? "true" : "false";
+            std::string valStr = name + ":" + val;
+            params.push_back(valStr);
+        }
+        else if(qobject_cast<QComboBox *>(child) != nullptr)
+        {
+            auto comboBox = qobject_cast<QComboBox *>(child);
+            auto val = comboBox->currentText().toStdString();
+            std::string valStr = name + ":" + val;
+            params.push_back(valStr);
+        }
+        else
+        {
+            std::cerr << "Unknown widget type: " << child->metaObject()->className() << std::endl;
+        }
     }
-    // TODO: Update the rendering attributes with the new parameters
-    // renderingAttributes->SetAnariRendererParams(params);
-    renderingWindow->SetUpdateApply(false);
-}
 
-void AnariRenderingWidget::spinBoxValueChanged(int value)
-{
-    UpdateRenderingAttributes();
-    renderingWindow->SetUpdateApply(false);
-}
-
-void
-AnariRenderingWidget::lineEditingFinished()
-{
-    UpdateRenderingAttributes();
-    renderingWindow->SetUpdateApply(false);
-}
-
-void
-AnariRenderingWidget::comboBoxTextChanged(const QString &text)
-{
-    UpdateRenderingAttributes();
-    renderingWindow->SetUpdateApply(false);
-}
-
-void
-AnariRenderingWidget::checkBoxToggled(bool checked)
-{
-    UpdateRenderingAttributes();
-    renderingWindow->SetUpdateApply(false);
+    renderingAttributes->SetAnariParameters(params);
+    renderingWindow->SetUpdateApply(updateApply);
 }

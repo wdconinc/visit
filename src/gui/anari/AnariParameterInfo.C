@@ -19,6 +19,7 @@
 // Modifications:
 //
 // ****************************************************************************
+
 AnariParameterInfo::AnariParameterInfo(AnariParameterInfo &&other)
 {
     m_name = other.m_name;
@@ -46,6 +47,7 @@ AnariParameterInfo::AnariParameterInfo(AnariParameterInfo &&other)
 // Modifications:
 //
 // ****************************************************************************
+
 AnariParameterInfo &
 AnariParameterInfo::operator=(AnariParameterInfo &&other)
 {
@@ -64,12 +66,28 @@ AnariParameterInfo::operator=(AnariParameterInfo &&other)
     return *this;
 }
 
+// ****************************************************************************
+// Method: AnariParameterInfo::SetDescription
+//
+// Purpose:
+//   Explanation of the parameter, e.g., for a tooltip
+//
+// Arguments:
+//   description : a description of the parameter
+//
+// Programmer: Kevin Griffin
+// Creation:   Mon Sep 23 14:46:40 PST 2002
+//
+// Modifications:
+//
+// ****************************************************************************
+
 void
-AnariParameterInfo::SetDescription(const void *d)
+AnariParameterInfo::SetDescription(const void *description)
 {
-    if(d)
+    if(description)
     {
-        m_description = std::string(reinterpret_cast<const char *>(d));
+        m_description = std::string(reinterpret_cast<const char *>(description));
     }
     else
     {
@@ -77,9 +95,27 @@ AnariParameterInfo::SetDescription(const void *d)
     }
 }
 
+// ****************************************************************************
+// Method: AnariParameterInfo::SetAcceptedValues
+//
+// Purpose:
+//   Set the list of accepted values for this parameter.
+//
+// Arguments:
+//   v : a list of accepted values
+//
+// Programmer: Kevin Griffin
+// Creation:   Mon Sep 23 14:46:40 PST 2002
+//
+// Modifications:
+//
+// ****************************************************************************
+
 void
 AnariParameterInfo::SetAcceptedValues(const char **v)
 {
+    m_acceptedValues.clear();
+
     for (int i = 0; v && v[i] != nullptr; i++)
     {
         m_acceptedValues.push_back(v[i]);

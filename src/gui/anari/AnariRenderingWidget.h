@@ -58,7 +58,7 @@ public:
     void UpdateRendererSubtypes(const std::string);
 
     // Dynamic
-    void UpdateRendererParams(const stringVector &);
+    void UpdateParameters(const stringVector &);
 
 signals:
     void currentBackendChanged(int);
@@ -82,7 +82,7 @@ private:
     BackendType GetBackendType(const std::string &) const;
     AnariParameterInfo GetParameterInfo(anari::Device, ANARIDataType, const char *, const ANARIParameter *);
     QWidget *MakeWidgetFromParameterInfo(const AnariParameterInfo &);
-    void UpdateRenderingAttributes();
+    void UpdateRenderingAttributes(const bool);
 
     QvisRenderingWindow *renderingWindow;
     RenderingAttributes *renderingAttributes;

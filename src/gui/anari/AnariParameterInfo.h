@@ -52,10 +52,10 @@ public:
     void SetType(ANARIDataType t) { m_type = t; }
     ANARIDataType GetType() const { return m_type; }
 
-    void SetDescription(const void *d);
+    void SetDescription(const void *);
     std::string GetDescription() const { return m_description; }
 
-    void SetAcceptedValues(const char **v);
+    void SetAcceptedValues(const char **);
     std::vector<std::string> GetAcceptedValues() const { return m_acceptedValues; }
 
     // Flags
@@ -63,6 +63,7 @@ public:
     bool HasMinimum() const { bool val = (m_minimum != NULL && m_minimum != nullptr); return val; }
     bool HasMaximum() const { bool val = (m_maximum != NULL && m_maximum != nullptr); return val; }
 
+    // Raw pointers to the memory returned by ANARI
     const void *m_minimum = nullptr;
     const void *m_maximum = nullptr;
     const void *m_defaultValue = nullptr;
@@ -73,8 +74,8 @@ private:
     ANARIDataType   m_type = ANARI_UNKNOWN;
 
     // Anari Parameter Info
-    std::string     m_description;
-    std::vector<std::string> m_acceptedValues;
+    std::string                 m_description;
+    std::vector<std::string>    m_acceptedValues;
 };
 
 #endif // ANARI_PARAMETER_INFO_H
