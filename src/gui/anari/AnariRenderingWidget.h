@@ -49,7 +49,7 @@ public:
                          QWidget *parent = nullptr);
     ~AnariRenderingWidget() = default;
 
-    int GetRowCount() const { return totalRows; }
+    int GetRowCount() const { return (topRows + bottomRows); }
 
     // General
     void SetChecked(const bool);
@@ -69,6 +69,8 @@ private slots:
     void librarySubtypeChanged(const QString &);
     void rendererSubtypeChanged(const QString &);
 
+    void selectButtonPressed();
+
     // Dynamic
     void spinBoxValueChanged(int);
     void lineEditingFinished();
@@ -77,6 +79,7 @@ private slots:
 
 private:
     QWidget *CreateGeneralWidget(int &);
+    QWidget *CreateUSDWidget(int &);
     void CreateDynamicWidget(anari::Device, const char *, const std::string &, bool isUSD = false);
 
     BackendType GetBackendType(const std::string &) const;
@@ -91,13 +94,21 @@ private:
     // Mapping of dynamic widget key (backend:subtype:renderer) to index in
     // dyamicLayouts
     std::map<std::string, int> dynamicLayoutMap;
-    int totalRows;
+    int topRows;
+    int bottomRows;
 
     // General Widget Components
     QGroupBox   *renderingGroup;
     QLineEdit   *libraryName;
     QComboBox   *librarySubtypes;
     QComboBox   *rendererSubtypes;
+
+    // File Chooser
+    QString     currentDirectory;
+    QLineEdit   *dirLineEdit;
+
+    static const std::string USD_WIDGET_KEY;
+    static const std::string DEFAULT_WIDGET_KEY;
 };
 
 #endif

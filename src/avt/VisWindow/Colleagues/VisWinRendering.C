@@ -261,23 +261,10 @@ VisWinRendering::VisWinRendering(VisWindowColleagueProxy &p) :
 #ifdef VISIT_ANARI
     vtkLogger::SetStderrVerbosity(vtkLogger::Verbosity::VERBOSITY_WARNING);
     anariRendering = false;
-    anariSPP = 1;
-    anariAO = 0;
     anariLibraryName = "";
     anariLibrarySubtype = "default";
     anariRendererSubtype = "default";
-    useAnariDenoiser  = false;
-    anariLightFalloff = 1.f;
-    anariAmbientIntensity = 1.f;
-    anariMaxDepth = 0;
-    anariRValue = 1.f;
-    usdAtCommit = false;
-    usdOutputBinary = true;
-    usdOutputMaterial = true;
-    usdOutputPreviewSurface = true;
-    usdOutputMDL = true;
-    usdOutputMDLColors = true;
-    usdOutputDisplayColors = true;
+    anariParameters = stringVector();
     usingUsdDevice = false;
 
     anariPass = CreateAnariPass();
@@ -3190,79 +3177,6 @@ VisWinRendering::SetAnariRendering(const bool enabled)
 }
 
 // ****************************************************************************
-// Method: VisWinRendering::SetUseAnariDenoiser
-//
-// Purpose:
-//   Sets the ANARI denoiser flag
-//
-// Arguments:
-//   enabled : true if the denoiser is enabled for rendering
-//
-// Programmer:  Kevin Griffin
-// Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
-//
-// ****************************************************************************
-
-void
-VisWinRendering::SetUseAnariDenoiser(const bool enabled)
-{
-    if(enabled != useAnariDenoiser)
-    {
-        useAnariDenoiser = enabled;
-        int value = enabled ? 1 : 0;
-        vtkAnariRendererNode::SetUseDenoiser(value, canvas);
-    }
-}
-
-// ****************************************************************************
-// Method: VisWinRendering::SetAnariSPP
-//
-// Purpose:
-//   Sets the ANARI samples per pixel
-//
-// Arguments:
-//   val : The new number of samples per pixel
-//
-// Programmer:  Kevin Griffin
-// Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
-//
-// ****************************************************************************
-
-void
-VisWinRendering::SetAnariSPP(const int val)
-{
-    if(val != anariSPP)
-    {
-        anariSPP = val;
-        vtkAnariRendererNode::SetSamplesPerPixel(val, canvas);
-    }
-}
-
-// ****************************************************************************
-// Method: VisWinRendering::SetAnariAO
-//
-// Purpose:
-//   Sets the ANARI ambient occlusion samples
-//
-// Arguments:
-//   val : the new number of ambient occlusion samples
-//
-// Programmer:  Kevin Griffin
-// Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
-//
-// ****************************************************************************
-
-void
-VisWinRendering::SetAnariAO(const int val)
-{
-    if(val != anariAO)
-    {
-        anariAO = val;
-        vtkAnariRendererNode::SetAmbientSamples(val, canvas);
-    }
-}
-
-// ****************************************************************************
 // Method: VisWinRendering::SetAnariLibraryName
 //
 // Purpose:
@@ -3309,7 +3223,7 @@ VisWinRendering::SetAnariLibrarySubtype(const std::string subtype)
     {
         anariLibrarySubtype = subtype;
         vtkAnariRendererNode::SetDeviceSubtype(subtype.c_str(), canvas);
-        std::cout << "Back-end subtype: " << subtype.c_str() << std::endl;
+        debug5 << "Back-end subtype: " << subtype.c_str() << std::endl;
         anariPassValid = false;
     }
 }
@@ -3339,13 +3253,13 @@ VisWinRendering::SetAnariRendererSubtype(const std::string subtype)
 }
 
 // ****************************************************************************
-// Method: VisWinRendering::SetAnariLightFalloff
+// Method: VisWinRendering::SetAnariParameters
 //
 // Purpose:
-//   Sets the light falloff value used by the back-end renderer
+//   Sets the vector of param:value strings
 //
 // Arguments:
-//   val    the light falloff value
+//   params  The list of param:value strings
 //
 // Programmer:  Kevin Griffin
 // Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
@@ -3353,310 +3267,14 @@ VisWinRendering::SetAnariRendererSubtype(const std::string subtype)
 // ****************************************************************************
 
 void
-VisWinRendering::SetAnariLightFalloff(const float val)
+VisWinRendering::SetAnariParameters(const stringVector &params)
 {
-    if(val != anariLightFalloff)
+    if(anariParameters != params)
     {
-        anariLightFalloff = val;
-        vtkAnariRendererNode::SetLightFalloff(val, canvas);
+        anariParameters = params;
+        vtkAnariRendererNode::SetAnariParameters(params, canvas);
     }
 }
-
-// ****************************************************************************
-// Method: VisWinRendering::SetAnariAmbientIntensity
-//
-// Purpose:
-//   Sets the ambient intensity value used by the back-end renderer.
-//
-// Arguments:
-//   val    the ambient intensity value
-//
-// Programmer:  Kevin Griffin
-// Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
-//
-// ****************************************************************************
-
-void
-VisWinRendering::SetAnariAmbientIntensity(const float val)
-{
-    if(val != anariAmbientIntensity)
-    {
-        anariAmbientIntensity = val;
-        vtkAnariRendererNode::SetAmbientIntensity(val, canvas);
-    }
-}
-
-// ****************************************************************************
-// Method: VisWinRendering::SetAnariMaxDepth
-//
-// Purpose:
-//   Sets the max depth value used by the back-end renderer.
-//
-// Arguments:
-//   val    the max depth value
-//
-// Programmer:  Kevin Griffin
-// Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
-//
-// ****************************************************************************
-
-void
-VisWinRendering::SetAnariMaxDepth(const int val)
-{
-    if(val != anariMaxDepth)
-    {
-        anariMaxDepth = val;
-        vtkAnariRendererNode::SetMaxDepth(val, canvas);
-    }
-}
-
-// ****************************************************************************
-// Method: VisWinRendering::SetAnariRValue
-//
-// Purpose:
-//   Sets the R value used by the back-end renderer.
-//
-// Arguments:
-//   val    the R value
-//
-// Programmer:  Kevin Griffin
-// Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
-//
-// ****************************************************************************
-
- void
- VisWinRendering::SetAnariRValue(const float val)
- {
-    if(val != anariRValue)
-    {
-        anariRValue = val;
-        vtkAnariRendererNode::SetROptionValue(val, canvas);
-    }
- }
-
-// ****************************************************************************
-// Method: VisWinRendering::SetAnariDebugMethod
-//
-// Purpose:
-//   Sets the debug method to use by the back-end debug renderer.
-//
-// Arguments:
-//   method     the debug method
-//
-// Programmer:  Kevin Griffin
-// Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
-//
-// ****************************************************************************
-
-void
-VisWinRendering::SetAnariDebugMethod(const std::string method)
-{
-    if(anariDebugMethod != method)
-    {
-        anariDebugMethod = method;
-        vtkAnariRendererNode::SetDebugMethod(method.c_str(), canvas);
-    }
-}
-
-// ****************************************************************************
-// Method: VisWinRendering::SetUsdDir
-//
-// Purpose:
-//   Sets the directory for saving USD output from the USD back-end.
-//
-// Arguments:
-//   dir        the output directory
-//
-// Programmer:  Kevin Griffin
-// Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
-//
-// ****************************************************************************
-
-void
-VisWinRendering::SetUsdDir(const std::string dir)
-{
-    if(usdDir != dir)
-    {
-        usdDir = dir;
-        vtkAnariRendererNode::SetUsdDirectory(usdDir.c_str(), canvas);
-    }
-}
-
-// ****************************************************************************
-// Method: VisWinRendering::SetUsdAtCommit
-//
-// Purpose:
-//   Sets the output USD at anariCommit flag for the USD back-end.
-//
-// Arguments:
-//   val    true if USD output is created when anariCommit is called,
-//          otherwise USD output is created when anariRenderFrame is called
-//
-// Programmer:  Kevin Griffin
-// Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
-//
-// ****************************************************************************
-
- void
- VisWinRendering::SetUsdAtCommit(const bool val)
- {
-    if(val != usdAtCommit)
-    {
-        usdAtCommit = val;
-        vtkAnariRendererNode::SetUsdAtCommit(val, canvas);
-    }
- }
-
-// ****************************************************************************
-// Method: VisWinRendering::SetUsdOutputBinary
-//
-// Purpose:
-//   Sets the output USD in binary format flag for the USD back-end.
-//
-// Arguments:
-//   val    true if USD output will be binary, otherwise USD output is text.
-//
-// Programmer:  Kevin Griffin
-// Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
-//
-// ****************************************************************************
-
- void
- VisWinRendering::SetUsdOutputBinary(const bool val)
- {
-    if(val != usdOutputBinary)
-    {
-        usdOutputBinary = val;
-        vtkAnariRendererNode::SetUsdOutputBinary(val, canvas);
-    }
- }
-
-// ****************************************************************************
-// Method: VisWinRendering::SetUsdOutputMaterial
-//
-// Purpose:
-//   Sets the output USD material objects flag for the USD back-end.
-//
-// Arguments:
-//   val    true if USD material objects should be output, otherwise false
-//
-// Programmer:  Kevin Griffin
-// Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
-//
-// ****************************************************************************
-
- void
- VisWinRendering::SetUsdOutputMaterial(const bool val)
- {
-    if(val != usdOutputMaterial)
-    {
-        usdOutputMaterial = val;
-        vtkAnariRendererNode::SetUsdOutputMaterial(val, canvas);
-    }
- }
-
-// ****************************************************************************
-// Method: VisWinRendering::SetUsdOutputPreviewSurface
-//
-// Purpose:
-//   Sets the output USD preview surface prims for material objects flag for
-//   the USD back-end.
-//
-// Arguments:
-//   val    true if USD previewsurface shader prims should be output for material
-//          objects, otherwise false
-//
-// Programmer:  Kevin Griffin
-// Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
-//
-// ****************************************************************************
-
- void
- VisWinRendering::SetUsdOutputPreviewSurface(const bool val)
- {
-    if(val != usdOutputPreviewSurface)
-    {
-        usdOutputPreviewSurface = val;
-        vtkAnariRendererNode::SetUsdOutputPreviewSurface(val, canvas);
-    }
- }
-
-// ****************************************************************************
-// Method: VisWinRendering::SetUsdOutputMDL
-//
-// Purpose:
-//   Sets the output USD mdl shader prims for material objects flag for the USD
-//   back-end.
-//
-// Arguments:
-//   val    true if USD mdl shader prims should be output for material objects,
-//          otherwise false
-//
-// Programmer:  Kevin Griffin
-// Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
-//
-// ****************************************************************************
-
- void
- VisWinRendering::SetUsdOutputMDL(const bool val)
- {
-    if(val != usdOutputMDL)
-    {
-        usdOutputMDL = val;
-        vtkAnariRendererNode::SetUsdOutputMDL(val, canvas);
-    }
- }
-
-// ****************************************************************************
-// Method: VisWinRendering::SetUsdOutputMDLColors
-//
-// Purpose:
-//   Sets the output USD mdl colors for material objects flag for the USD
-//   back-end.
-//
-// Arguments:
-//   val    true if USD mdl colors should be included in the output for
-//          material objects, otherwise false
-//
-// Programmer:  Kevin Griffin
-// Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
-//
-// ****************************************************************************
-
- void
- VisWinRendering::SetUsdOutputMDLColors(const bool val)
- {
-    if(val != usdOutputMDLColors)
-    {
-        usdOutputMDLColors = val;
-        vtkAnariRendererNode::SetUsdOutputMDLColors(val, canvas);
-    }
- }
-
-// ****************************************************************************
-// Method: VisWinRendering::SetUsdOutputDisplayColors
-//
-// Purpose:
-//   Sets the output USD display colors flag for the USD back-end.
-//
-// Arguments:
-//   val    true if USD display colors should be included in the output,
-//          otherwise false
-//
-// Programmer:  Kevin Griffin
-// Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
-//
-// ****************************************************************************
-
- void
- VisWinRendering::SetUsdOutputDisplayColors(const bool val)
- {
-    if(val != usdOutputDisplayColors)
-    {
-        usdOutputDisplayColors = val;
-        vtkAnariRendererNode::SetUsdOutputDisplayColors(val, canvas);
-    }
- }
 
 // ****************************************************************************
 // Method: VisWinRendering::SetUsingUsdDevice

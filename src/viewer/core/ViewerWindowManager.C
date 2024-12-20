@@ -3608,46 +3608,14 @@ ViewerWindowManager::SetRenderingAttributes(int windowIndex)
 #ifdef VISIT_ANARI
     if (windows[index]->GetAnariRendering() != ratts->GetAnariRendering())
         windows[index]->SetAnariRendering(ratts->GetAnariRendering());
-    if (windows[index]->GetAnariSPP() != ratts->GetAnariSPP())
-        windows[index]->SetAnariSPP(ratts->GetAnariSPP());
-    if (windows[index]->GetAnariAO() != ratts->GetAnariAO())
-        windows[index]->SetAnariAO(ratts->GetAnariAO());
     if (windows[index]->GetAnariLibraryName().compare(ratts->GetAnariLibrary()) != 0)
         windows[index]->SetAnariLibraryName(ratts->GetAnariLibrary());
     if (windows[index]->GetAnariLibrarySubtype().compare(ratts->GetAnariLibrarySubtype()) != 0)
         windows[index]->SetAnariLibrarySubtype(ratts->GetAnariLibrarySubtype());
     if (windows[index]->GetAnariRendererSubtype().compare(ratts->GetAnariRendererSubtype()) != 0)
         windows[index]->SetAnariRendererSubtype(ratts->GetAnariRendererSubtype());
-    if (windows[index]->GetUseAnariDenoiser() != ratts->GetUseAnariDenoiser())
-        windows[index]->SetUseAnariDenoiser(ratts->GetUseAnariDenoiser());
-    if (windows[index]->GetAnariLightFalloff() != ratts->GetAnariLightFalloff())
-        windows[index]->SetAnariLightFalloff(ratts->GetAnariLightFalloff());
-    if (windows[index]->GetAnariLightFalloff() != ratts->GetAnariLightFalloff())
-        windows[index]->SetAnariLightFalloff(ratts->GetAnariLightFalloff());
-    if (windows[index]->GetAnariAmbientIntensity() != ratts->GetAnariAmbientIntensity())
-        windows[index]->SetAnariAmbientIntensity(ratts->GetAnariAmbientIntensity());
-    if (windows[index]->GetAnariMaxDepth() != ratts->GetAnariMaxDepth())
-        windows[index]->SetAnariMaxDepth(ratts->GetAnariMaxDepth());
-    if (windows[index]->GetAnariRValue() != ratts->GetAnariRValue())
-        windows[index]->SetAnariRValue(ratts->GetAnariRValue());
-    if (windows[index]->GetAnariDebugMethod() != ratts->GetAnariDebugMethod())
-        windows[index]->SetAnariDebugMethod(ratts->GetAnariDebugMethod());
-    if (windows[index]->GetUsdDir() != ratts->GetUsdDir())
-        windows[index]->SetUsdDir(ratts->GetUsdDir());
-    if (windows[index]->GetUsdAtCommit() != ratts->GetUsdAtCommit())
-        windows[index]->SetUsdAtCommit(ratts->GetUsdAtCommit());
-    if (windows[index]->GetUsdOutputBinary() != ratts->GetUsdOutputBinary())
-        windows[index]->SetUsdOutputBinary(ratts->GetUsdOutputBinary());
-    if (windows[index]->GetUsdOutputMaterial() != ratts->GetUsdOutputMaterial())
-        windows[index]->SetUsdOutputMaterial(ratts->GetUsdOutputMaterial());
-    if (windows[index]->GetUsdOutputPreviewSurface() != ratts->GetUsdOutputPreviewSurface())
-        windows[index]->SetUsdOutputPreviewSurface(ratts->GetUsdOutputPreviewSurface());
-    if (windows[index]->GetUsdOutputMDL() != ratts->GetUsdOutputMDL())
-        windows[index]->SetUsdOutputMDL(ratts->GetUsdOutputMDL());
-    if (windows[index]->GetUsdOutputMDLColors() != ratts->GetUsdOutputMDLColors())
-        windows[index]->SetUsdOutputMDLColors(ratts->GetUsdOutputMDLColors());
-    if (windows[index]->GetUsdOutputDisplayColors() != ratts->GetUsdOutputDisplayColors())
-        windows[index]->SetUsdOutputDisplayColors(ratts->GetUsdOutputDisplayColors());
+    if (windows[index]->GetAnariParameters() != ratts->GetAnariParameters())
+        windows[index]->SetAnariParameters(ratts->GetAnariParameters());
     if (windows[index]->GetUsingUsdDevice() != ratts->GetUsingUsdDevice())
         windows[index]->SetUsingUsdDevice(ratts->GetUsingUsdDevice());
 #endif
@@ -5305,25 +5273,10 @@ ViewerWindowManager::UpdateRenderingAtts(int windowIndex)
 
 #ifdef VISIT_ANARI
         GetViewerState()->GetRenderingAttributes()->SetAnariRendering(win->GetAnariRendering());
-        GetViewerState()->GetRenderingAttributes()->SetAnariSPP(win->GetAnariSPP());
-        GetViewerState()->GetRenderingAttributes()->SetAnariAO(win->GetAnariAO());
         GetViewerState()->GetRenderingAttributes()->SetAnariLibrary(win->GetAnariLibraryName());
         GetViewerState()->GetRenderingAttributes()->SetAnariLibrarySubtype(win->GetAnariLibrarySubtype());
         GetViewerState()->GetRenderingAttributes()->SetAnariRendererSubtype(win->GetAnariRendererSubtype());
-        GetViewerState()->GetRenderingAttributes()->SetUseAnariDenoiser(win->GetUseAnariDenoiser());
-        GetViewerState()->GetRenderingAttributes()->SetAnariLightFalloff(win->GetAnariLightFalloff());
-        GetViewerState()->GetRenderingAttributes()->SetAnariAmbientIntensity(win->GetAnariAmbientIntensity());
-        GetViewerState()->GetRenderingAttributes()->SetAnariMaxDepth(win->GetAnariMaxDepth());
-        GetViewerState()->GetRenderingAttributes()->SetAnariRValue(win->GetAnariRValue());
-        GetViewerState()->GetRenderingAttributes()->SetAnariDebugMethod(win->GetAnariDebugMethod());
-        GetViewerState()->GetRenderingAttributes()->SetUsdDir(win->GetUsdDir());
-        GetViewerState()->GetRenderingAttributes()->SetUsdAtCommit(win->GetUsdAtCommit());
-        GetViewerState()->GetRenderingAttributes()->SetUsdOutputBinary(win->GetUsdOutputBinary());
-        GetViewerState()->GetRenderingAttributes()->SetUsdOutputMaterial(win->GetUsdOutputMaterial());
-        GetViewerState()->GetRenderingAttributes()->SetUsdOutputPreviewSurface(win->GetUsdOutputPreviewSurface());
-        GetViewerState()->GetRenderingAttributes()->SetUsdOutputMDL(win->GetUsdOutputMDL());
-        GetViewerState()->GetRenderingAttributes()->SetUsdOutputMDLColors(win->GetUsdOutputMDLColors());
-        GetViewerState()->GetRenderingAttributes()->SetUsdOutputDisplayColors(win->GetUsdOutputDisplayColors());
+        GetViewerState()->GetRenderingAttributes()->SetAnariParameters(win->GetAnariParameters());
         GetViewerState()->GetRenderingAttributes()->SetUsingUsdDevice(win->GetUsingUsdDevice());
 #endif
 

@@ -28,6 +28,9 @@
 
 #include <algorithm>
 
+const std::string AnariRenderingWidget::USD_WIDGET_KEY = "usd";
+const std::string AnariRenderingWidget::DEFAULT_WIDGET_KEY = "default";
+
 namespace anari_visit
 {
     void StatusCallback(const void* userData, anari::Device device,
@@ -94,11 +97,14 @@ AnariRenderingWidget::AnariRenderingWidget(QvisRenderingWindow *qrw,
     , renderingAttributes(ra)
     , dynamicLayouts(nullptr)
     , dynamicLayoutMap()
-    , totalRows(0)
+    , topRows(0)
+    , bottomRows(0)
     , renderingGroup(nullptr)
     , libraryName(nullptr)
     , librarySubtypes(nullptr)
     , rendererSubtypes(nullptr)
+    , currentDirectory()
+    , dirLineEdit(nullptr)
 {
     // row, col, rowspan, colspan
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
@@ -113,13 +119,21 @@ AnariRenderingWidget::AnariRenderingWidget(QvisRenderingWindow *qrw,
             this, &AnariRenderingWidget::renderingToggled);
 
     QVBoxLayout *renderingGroupVBoxLayout = new QVBoxLayout(renderingGroup);
-    int rows =  totalRows;
 
-    renderingGroupVBoxLayout->addWidget(CreateGeneralWidget(rows));
-    totalRows += rows + 1;
+    // General
+    renderingGroupVBoxLayout->addWidget(CreateGeneralWidget(topRows));
 
+    // Widget Cache
     dynamicLayouts = new QStackedLayout();
-    dynamicLayouts->addWidget(new QWidget(this)); // Placeholder for index 0
+    int widgetIndex;
+
+    // Placeholder Widget
+    widgetIndex = dynamicLayouts->addWidget(new QWidget(this));
+    dynamicLayoutMap[AnariRenderingWidget::DEFAULT_WIDGET_KEY] = widgetIndex;
+
+    // USD Widget
+    widgetIndex = dynamicLayouts->addWidget(CreateUSDWidget(bottomRows));
+    dynamicLayoutMap[AnariRenderingWidget::USD_WIDGET_KEY] = widgetIndex;
 
     renderingGroupVBoxLayout->addLayout(dynamicLayouts);
     mainLayout->addWidget(renderingGroup);
@@ -197,6 +211,129 @@ AnariRenderingWidget::CreateGeneralWidget(int &rows)
     gridLayout->addItem(new QSpacerItem(10, 10), rows++, 3, 1, 3);
 
     return generalOptionsWidget;
+}
+
+// ****************************************************************************
+// Method: AnariRenderingWidget::CreateUSDWidget
+//
+// Purpose:
+//   Creates the UI components used by ANARI back-ends.
+//
+// Arguments:
+//   rows keeps track of the total rows of UI components
+//
+//
+// Programmer: Kevin Griffin
+// Creation:
+//
+// Modifications:
+//
+// ****************************************************************************
+
+QWidget *
+AnariRenderingWidget::CreateUSDWidget(int &rows)
+{
+    auto widget = new QWidget(this);
+    auto mainLayout = new QVBoxLayout(widget);
+
+    auto gridLayout = new QGridLayout();
+    gridLayout->setSpacing(10);
+    gridLayout->setContentsMargins(10,10,10,10);
+
+    gridLayout->setColumnStretch(1, 3);
+
+    // row, col, rowspan, colspan
+    // Output location for the USD files
+    // Row 1
+    auto locationLabel = new QLabel("Directory");
+    locationLabel->setToolTip(tr("Output location for saving the USD files"));
+
+    currentDirectory = QString(QDir::homePath());
+    dirLineEdit = new QLineEdit(currentDirectory);
+    dirLineEdit->setObjectName("usd::serialize.location");
+
+    connect(dirLineEdit, &QLineEdit::editingFinished, this, &AnariRenderingWidget::lineEditingFinished);
+
+    auto dirSelectButton = new QPushButton("Select");
+    connect(dirSelectButton, &QPushButton::pressed, this, &AnariRenderingWidget::selectButtonPressed);
+
+    auto commitCheckBox = new QCheckBox(tr("commit"));
+    commitCheckBox->setObjectName("usd::writeatcommit");
+    commitCheckBox->setToolTip(tr("Write USD at ANARI commit call"));
+    commitCheckBox->setChecked(true);
+
+    connect(commitCheckBox, &QCheckBox::toggled, this, &AnariRenderingWidget::checkBoxToggled);
+
+    gridLayout->addWidget(locationLabel, 0, 0, 1, 1);
+    gridLayout->addWidget(dirLineEdit, 0, 1, 1, 2);
+    gridLayout->addWidget(dirSelectButton, 0, 3, 1, 1);
+    gridLayout->addWidget(commitCheckBox, 0, 4, 1, 1);
+
+    mainLayout->addLayout(gridLayout);
+
+    // Row 2
+    rows++;
+    auto outputGroup = new QGroupBox(tr("Output"));
+
+    auto gridLayout2 = new QGridLayout(outputGroup);
+    gridLayout2->setSpacing(10);
+    gridLayout2->setContentsMargins(10,10,10,10);
+
+    auto binaryCheckBox = new QCheckBox(tr("Binary"));
+    binaryCheckBox->setObjectName("usd::serialize.outputbinary");
+    binaryCheckBox->setToolTip(tr("Binary or text output"));
+    binaryCheckBox->setChecked(true);
+
+    connect(binaryCheckBox, &QCheckBox::toggled, this, &AnariRenderingWidget::checkBoxToggled);
+    gridLayout2->addWidget(binaryCheckBox, 0, 0, 1, 1);
+
+    auto materialCheckBox = new QCheckBox(tr("Material"));
+    materialCheckBox->setObjectName("usd::output.material");
+    materialCheckBox->setToolTip(tr("Include material objects in the output"));
+    materialCheckBox->setChecked(true);
+
+    connect(materialCheckBox, &QCheckBox::toggled, this, &AnariRenderingWidget::checkBoxToggled);
+    gridLayout2->addWidget(materialCheckBox, 0, 1, 1, 1);
+
+    auto previewCheckBox = new QCheckBox(tr("Preview Surface"));
+    previewCheckBox->setObjectName("usd::output.previewsurfaceshader");
+    previewCheckBox->setToolTip(tr("Include preview surface shader prims in the output for material objects"));
+    previewCheckBox->setChecked(false);
+
+    connect(previewCheckBox, &QCheckBox::toggled, this, &AnariRenderingWidget::checkBoxToggled);
+    gridLayout2->addWidget(previewCheckBox, 0, 2, 1, 1);
+
+    // Row 3
+    rows++;
+
+    auto mdlCheckBox = new QCheckBox(tr("MDL"));
+    mdlCheckBox->setObjectName("usd::output.mdlshader");
+    mdlCheckBox->setToolTip(tr("Include MDL shader prims in the output for material objects"));
+    mdlCheckBox->setChecked(true);
+
+    connect(mdlCheckBox, &QCheckBox::toggled, this, &AnariRenderingWidget::checkBoxToggled);
+    gridLayout2->addWidget(mdlCheckBox, 1, 0, 1, 1);
+
+    auto mdlColorCheckBox = new QCheckBox(tr("MDL Colors"));
+    mdlColorCheckBox->setObjectName("usd::output.mdlcolors");
+    mdlColorCheckBox->setToolTip(tr("Include MDL colors in the output for material objects"));
+    mdlColorCheckBox->setChecked(true);
+
+    connect(mdlColorCheckBox, &QCheckBox::toggled, this, &AnariRenderingWidget::checkBoxToggled);
+    gridLayout2->addWidget(mdlColorCheckBox, 1, 1, 1, 1);
+
+    auto displayColorCheckBox = new QCheckBox(tr("Display Colors"));
+    displayColorCheckBox->setObjectName("usd::output.displaycolors");
+    displayColorCheckBox->setToolTip(tr("Include display colors in the output"));
+    displayColorCheckBox->setChecked(false);
+
+    connect(displayColorCheckBox, &QCheckBox::toggled, this, &AnariRenderingWidget::checkBoxToggled);
+    gridLayout2->addWidget(displayColorCheckBox, 1, 2, 1, 1);
+
+    rows++;
+    mainLayout->addWidget(outputGroup);
+
+    return widget;
 }
 
 // ****************************************************************************
@@ -424,13 +561,18 @@ void
 AnariRenderingWidget::CreateDynamicWidget(anari::Device anariDevice, const char *subtype, const std::string &key, bool isUSD)
 {
     int stackLayoutIndex = 0;
-    auto resultIter = dynamicLayoutMap.find(key);
 
-    if(resultIter == dynamicLayoutMap.end())
+    if(isUSD)
     {
-        std::cout << "Creating dynamic widget for " << key << std::endl;
-        if(!isUSD)
+        stackLayoutIndex = this->dynamicLayoutMap[AnariRenderingWidget::USD_WIDGET_KEY];
+    }
+    else
+    {
+        auto resultIter = dynamicLayoutMap.find(key);
+
+        if(resultIter == dynamicLayoutMap.end())
         {
+            std::cout << "Creating dynamic widget for " << key << std::endl;
             QWidget *dynamicWidget = new QWidget(this);
 
             QGridLayout *gridLayout = new QGridLayout(dynamicWidget);
@@ -488,18 +630,13 @@ AnariRenderingWidget::CreateDynamicWidget(anari::Device anariDevice, const char 
             }
 
             stackLayoutIndex = dynamicLayouts->addWidget(dynamicWidget);
+            dynamicLayoutMap[key] = stackLayoutIndex;
         }
         else
         {
-            stackLayoutIndex = 0; // TODO: stackLayoutIndex = dynamicLayouts->addWidget(CreateUSDWidget(stackLayoutIndex));
+            std::cout << "Dynamic widget already exists for " << key << std::endl;
+            stackLayoutIndex = resultIter->second;
         }
-
-        dynamicLayoutMap[key] = stackLayoutIndex;
-    }
-    else
-    {
-        std::cout << "Dynamic widget already exists for " << key << std::endl;
-        stackLayoutIndex = resultIter->second;
     }
 
     emit currentBackendChanged(stackLayoutIndex);
@@ -1020,6 +1157,35 @@ AnariRenderingWidget::rendererSubtypeChanged(const QString &subtype)
 }
 
 // ****************************************************************************
+// Method: AnariRenderingWidget::selectButtonPressed
+//
+// Purpose:
+//      Triggered when the USD output directory select button is pressed.
+//
+// Programmer:  Kevin Griffin
+// Creation:    Fri Mar 11 12:27:45 PDT 2022
+//
+// Modifications:
+//
+// ****************************************************************************
+
+void
+AnariRenderingWidget::selectButtonPressed()
+{
+    auto dir = QFileDialog::getExistingDirectory(this,
+                                                 tr("Open Directory"),
+                                                 this->currentDirectory,
+                                                 QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+
+    if(!dir.isEmpty())
+    {
+        QDir directory(dir);
+        this->currentDirectory = directory.absolutePath();
+        this->dirLineEdit->setText(dir);
+    }
+}
+
+// ****************************************************************************
 // Method: AnariRenderingWidget::spinBoxValueChanged
 //
 // Purpose:
@@ -1131,34 +1297,40 @@ AnariRenderingWidget::UpdateRenderingAttributes(const bool updateApply)
     for(auto child : children)
     {
         auto name = child->objectName().toStdString();
+
+        if(name.empty())
+        {
+            continue;
+        }
+
         std::cout << "Renderer Parameter Name: " << name.c_str() << std::endl;
 
         if(qobject_cast<QSpinBox *>(child) != nullptr)
         {
             auto spinBox = qobject_cast<QSpinBox *>(child);
             auto val = spinBox->value();
-            std::string valStr = name + ":" + std::to_string(val);
+            std::string valStr = name + ";" + std::to_string(val);
             params.push_back(valStr);
         }
         else if(qobject_cast<QLineEdit *>(child) != nullptr)
         {
             auto lineEdit = qobject_cast<QLineEdit *>(child);
-            auto val = lineEdit->text();
-            std::string valStr = name + ":" + val.toStdString();
+            auto val = lineEdit->text().toStdString();
+            std::string valStr = name + ";" + val;
             params.push_back(valStr);
         }
         else if(qobject_cast<QCheckBox *>(child) != nullptr)
         {
             auto checkBox = qobject_cast<QCheckBox *>(child);
-            auto val = checkBox->isChecked() ? "true" : "false";
-            std::string valStr = name + ":" + val;
+            auto val = checkBox->isChecked() ? "1" : "0";
+            std::string valStr = name + ";" + val;
             params.push_back(valStr);
         }
         else if(qobject_cast<QComboBox *>(child) != nullptr)
         {
             auto comboBox = qobject_cast<QComboBox *>(child);
             auto val = comboBox->currentText().toStdString();
-            std::string valStr = name + ":" + val;
+            std::string valStr = name + ";" + val;
             params.push_back(valStr);
         }
         else
