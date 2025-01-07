@@ -6789,7 +6789,8 @@ NetworkManager::RenderSetup(avtImageType imgT, int windowID, intVector& plotIds,
     renderState.window->SetAnariLibraryName(renderAtts.GetAnariLibrary());
     renderState.window->SetAnariLibrarySubtype(renderAtts.GetAnariLibrarySubtype());
     renderState.window->SetAnariRendererSubtype(renderAtts.GetAnariRendererSubtype());
-    renderState.window->SetAnariParameters(renderAtts.GetAnariParameters());
+    renderState.window->SetAnariRendererParameters(renderAtts.GetAnariRendererParameters());
+    renderState.window->SetAnariUSDParameters(renderAtts.GetAnariUSDParameters());
     renderState.window->SetUsingUsdDevice(renderAtts.GetUsingUsdDevice());
 #endif
 

@@ -254,7 +254,8 @@ void RenderingAttributes::Copy(const RenderingAttributes &obj)
     anariLibrarySubtype = obj.anariLibrarySubtype;
     anariRendererSubtype = obj.anariRendererSubtype;
     usingUsdDevice = obj.usingUsdDevice;
-    anariParameters = obj.anariParameters;
+    anariRendererParameters = obj.anariRendererParameters;
+    anariUSDParameters = obj.anariUSDParameters;
 
     RenderingAttributes::SelectAll();
 }
@@ -464,7 +465,8 @@ RenderingAttributes::operator == (const RenderingAttributes &obj) const
             (anariLibrarySubtype == obj.anariLibrarySubtype) &&
             (anariRendererSubtype == obj.anariRendererSubtype) &&
             (usingUsdDevice == obj.usingUsdDevice) &&
-            (anariParameters == obj.anariParameters));
+            (anariRendererParameters == obj.anariRendererParameters) &&
+            (anariUSDParameters == obj.anariUSDParameters));
 }
 
 // ****************************************************************************
@@ -648,7 +650,8 @@ RenderingAttributes::SelectAll()
     Select(ID_anariLibrarySubtype,          (void *)&anariLibrarySubtype);
     Select(ID_anariRendererSubtype,         (void *)&anariRendererSubtype);
     Select(ID_usingUsdDevice,               (void *)&usingUsdDevice);
-    Select(ID_anariParameters,              (void *)&anariParameters);
+    Select(ID_anariRendererParameters,      (void *)&anariRendererParameters);
+    Select(ID_anariUSDParameters,           (void *)&anariUSDParameters);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -923,10 +926,16 @@ RenderingAttributes::CreateNode(DataNode *parentNode, bool completeSave, bool fo
         node->AddNode(new DataNode("usingUsdDevice", usingUsdDevice));
     }
 
-    if(completeSave || !FieldsEqual(ID_anariParameters, &defaultObject))
+    if(completeSave || !FieldsEqual(ID_anariRendererParameters, &defaultObject))
     {
         addToParent = true;
-        node->AddNode(new DataNode("anariParameters", anariParameters));
+        node->AddNode(new DataNode("anariRendererParameters", anariRendererParameters));
+    }
+
+    if(completeSave || !FieldsEqual(ID_anariUSDParameters, &defaultObject))
+    {
+        addToParent = true;
+        node->AddNode(new DataNode("anariUSDParameters", anariUSDParameters));
     }
 
 
@@ -1115,8 +1124,10 @@ RenderingAttributes::SetFromNode(DataNode *parentNode)
         SetAnariRendererSubtype(node->AsString());
     if((node = searchNode->GetNode("usingUsdDevice")) != 0)
         SetUsingUsdDevice(node->AsBool());
-    if((node = searchNode->GetNode("anariParameters")) != 0)
-        SetAnariParameters(node->AsStringVector());
+    if((node = searchNode->GetNode("anariRendererParameters")) != 0)
+        SetAnariRendererParameters(node->AsStringVector());
+    if((node = searchNode->GetNode("anariUSDParameters")) != 0)
+        SetAnariUSDParameters(node->AsStringVector());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1408,10 +1419,17 @@ RenderingAttributes::SetUsingUsdDevice(bool usingUsdDevice_)
 }
 
 void
-RenderingAttributes::SetAnariParameters(const stringVector &anariParameters_)
+RenderingAttributes::SetAnariRendererParameters(const stringVector &anariRendererParameters_)
 {
-    anariParameters = anariParameters_;
-    Select(ID_anariParameters, (void *)&anariParameters);
+    anariRendererParameters = anariRendererParameters_;
+    Select(ID_anariRendererParameters, (void *)&anariRendererParameters);
+}
+
+void
+RenderingAttributes::SetAnariUSDParameters(const stringVector &anariUSDParameters_)
+{
+    anariUSDParameters = anariUSDParameters_;
+    Select(ID_anariUSDParameters, (void *)&anariUSDParameters);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1695,15 +1713,27 @@ RenderingAttributes::GetUsingUsdDevice() const
 }
 
 const stringVector &
-RenderingAttributes::GetAnariParameters() const
+RenderingAttributes::GetAnariRendererParameters() const
 {
-    return anariParameters;
+    return anariRendererParameters;
 }
 
 stringVector &
-RenderingAttributes::GetAnariParameters()
+RenderingAttributes::GetAnariRendererParameters()
 {
-    return anariParameters;
+    return anariRendererParameters;
+}
+
+const stringVector &
+RenderingAttributes::GetAnariUSDParameters() const
+{
+    return anariUSDParameters;
+}
+
+stringVector &
+RenderingAttributes::GetAnariUSDParameters()
+{
+    return anariUSDParameters;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1747,9 +1777,15 @@ RenderingAttributes::SelectAnariRendererSubtype()
 }
 
 void
-RenderingAttributes::SelectAnariParameters()
+RenderingAttributes::SelectAnariRendererParameters()
 {
-    Select(ID_anariParameters, (void *)&anariParameters);
+    Select(ID_anariRendererParameters, (void *)&anariRendererParameters);
+}
+
+void
+RenderingAttributes::SelectAnariUSDParameters()
+{
+    Select(ID_anariUSDParameters, (void *)&anariUSDParameters);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1816,7 +1852,8 @@ RenderingAttributes::GetFieldName(int index) const
     case ID_anariLibrarySubtype:          return "anariLibrarySubtype";
     case ID_anariRendererSubtype:         return "anariRendererSubtype";
     case ID_usingUsdDevice:               return "usingUsdDevice";
-    case ID_anariParameters:              return "anariParameters";
+    case ID_anariRendererParameters:      return "anariRendererParameters";
+    case ID_anariUSDParameters:           return "anariUSDParameters";
     default:  return "invalid index";
     }
 }
@@ -1881,7 +1918,8 @@ RenderingAttributes::GetFieldType(int index) const
     case ID_anariLibrarySubtype:          return FieldType_string;
     case ID_anariRendererSubtype:         return FieldType_string;
     case ID_usingUsdDevice:               return FieldType_bool;
-    case ID_anariParameters:              return FieldType_stringVector;
+    case ID_anariRendererParameters:      return FieldType_stringVector;
+    case ID_anariUSDParameters:           return FieldType_stringVector;
     default:  return FieldType_unknown;
     }
 }
@@ -1946,7 +1984,8 @@ RenderingAttributes::GetFieldTypeName(int index) const
     case ID_anariLibrarySubtype:          return "string";
     case ID_anariRendererSubtype:         return "string";
     case ID_usingUsdDevice:               return "bool";
-    case ID_anariParameters:              return "stringVector";
+    case ID_anariRendererParameters:      return "stringVector";
+    case ID_anariUSDParameters:           return "stringVector";
     default:  return "invalid index";
     }
 }
@@ -2183,9 +2222,14 @@ RenderingAttributes::FieldsEqual(int index_, const AttributeGroup *rhs) const
         retval = (usingUsdDevice == obj.usingUsdDevice);
         }
         break;
-    case ID_anariParameters:
+    case ID_anariRendererParameters:
         {  // new scope
-        retval = (anariParameters == obj.anariParameters);
+        retval = (anariRendererParameters == obj.anariRendererParameters);
+        }
+        break;
+    case ID_anariUSDParameters:
+        {  // new scope
+        retval = (anariUSDParameters == obj.anariUSDParameters);
         }
         break;
     default: retval = false;

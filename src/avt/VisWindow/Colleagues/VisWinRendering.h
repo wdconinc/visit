@@ -422,8 +422,10 @@ class VISWINDOW_API VisWinRendering : public VisWinColleague
     std::string             GetAnariLibrarySubtype() const { return anariLibrarySubtype; }
     void                    SetAnariRendererSubtype(const std::string);
     std::string             GetAnariRendererSubtype() const { return anariRendererSubtype; }
-    void                    SetAnariParameters(const stringVector &);
-    stringVector            GetAnariParameters() const { return anariParameters; }
+    void                    SetAnariRendererParameters(const stringVector &);
+    stringVector            GetAnariRendererParameters() const { return anariRendererParameters; }
+    void                    SetAnariUSDParameters(const stringVector &);
+    stringVector            GetAnariUSDParameters() const { return anariUSDParameters; }
     void                    SetUsingUsdDevice(const bool);
     bool                    GetUsingUsdDevice() const { return usingUsdDevice; }
     vtkAnariPass            *CreateAnariPass();
@@ -488,7 +490,8 @@ class VISWINDOW_API VisWinRendering : public VisWinColleague
     std::string                 anariLibraryName;
     std::string                 anariLibrarySubtype;
     std::string                 anariRendererSubtype;
-    stringVector                anariParameters;
+    stringVector                anariRendererParameters;
+    stringVector                anariUSDParameters;
     bool                        usingUsdDevice;
     vtkAnariPass                *anariPass;
     bool                        anariPassValid;

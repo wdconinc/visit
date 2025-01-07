@@ -23,7 +23,7 @@ import java.util.Vector;
 
 public class RenderingAttributes extends AttributeSubject
 {
-    private static int RenderingAttributes_numAdditionalAtts = 41;
+    private static int RenderingAttributes_numAdditionalAtts = 42;
 
     // Enum values
     public final static int GEOMETRYREPRESENTATION_SURFACES = 0;
@@ -99,7 +99,8 @@ public final static int DEFAULT_COMPACT_DOMAINS_AUTO_THRESHOLD = 256;
         anariLibrarySubtype = new String("default");
         anariRendererSubtype = new String("default");
         usingUsdDevice = false;
-        anariParameters = new Vector();
+        anariRendererParameters = new Vector();
+        anariUSDParameters = new Vector();
     }
 
     public RenderingAttributes(int nMoreFields)
@@ -152,7 +153,8 @@ public final static int DEFAULT_COMPACT_DOMAINS_AUTO_THRESHOLD = 256;
         anariLibrarySubtype = new String("default");
         anariRendererSubtype = new String("default");
         usingUsdDevice = false;
-        anariParameters = new Vector();
+        anariRendererParameters = new Vector();
+        anariUSDParameters = new Vector();
     }
 
     public RenderingAttributes(RenderingAttributes obj)
@@ -209,9 +211,13 @@ public final static int DEFAULT_COMPACT_DOMAINS_AUTO_THRESHOLD = 256;
         anariLibrarySubtype = new String(obj.anariLibrarySubtype);
         anariRendererSubtype = new String(obj.anariRendererSubtype);
         usingUsdDevice = obj.usingUsdDevice;
-        anariParameters = new Vector(obj.anariParameters.size());
-        for(i = 0; i < obj.anariParameters.size(); ++i)
-            anariParameters.addElement(new String((String)obj.anariParameters.elementAt(i)));
+        anariRendererParameters = new Vector(obj.anariRendererParameters.size());
+        for(i = 0; i < obj.anariRendererParameters.size(); ++i)
+            anariRendererParameters.addElement(new String((String)obj.anariRendererParameters.elementAt(i)));
+
+        anariUSDParameters = new Vector(obj.anariUSDParameters.size());
+        for(i = 0; i < obj.anariUSDParameters.size(); ++i)
+            anariUSDParameters.addElement(new String((String)obj.anariUSDParameters.elementAt(i)));
 
 
         SelectAll();
@@ -241,14 +247,23 @@ public final static int DEFAULT_COMPACT_DOMAINS_AUTO_THRESHOLD = 256;
         for(i = 0; i < 3 && endCuePoint_equal; ++i)
             endCuePoint_equal = (endCuePoint[i] == obj.endCuePoint[i]);
 
-        // Compare the elements in the anariParameters vector.
-        boolean anariParameters_equal = (obj.anariParameters.size() == anariParameters.size());
-        for(i = 0; (i < anariParameters.size()) && anariParameters_equal; ++i)
+        // Compare the elements in the anariRendererParameters vector.
+        boolean anariRendererParameters_equal = (obj.anariRendererParameters.size() == anariRendererParameters.size());
+        for(i = 0; (i < anariRendererParameters.size()) && anariRendererParameters_equal; ++i)
         {
             // Make references to String from Object.
-            String anariParameters1 = (String)anariParameters.elementAt(i);
-            String anariParameters2 = (String)obj.anariParameters.elementAt(i);
-            anariParameters_equal = anariParameters1.equals(anariParameters2);
+            String anariRendererParameters1 = (String)anariRendererParameters.elementAt(i);
+            String anariRendererParameters2 = (String)obj.anariRendererParameters.elementAt(i);
+            anariRendererParameters_equal = anariRendererParameters1.equals(anariRendererParameters2);
+        }
+        // Compare the elements in the anariUSDParameters vector.
+        boolean anariUSDParameters_equal = (obj.anariUSDParameters.size() == anariUSDParameters.size());
+        for(i = 0; (i < anariUSDParameters.size()) && anariUSDParameters_equal; ++i)
+        {
+            // Make references to String from Object.
+            String anariUSDParameters1 = (String)anariUSDParameters.elementAt(i);
+            String anariUSDParameters2 = (String)obj.anariUSDParameters.elementAt(i);
+            anariUSDParameters_equal = anariUSDParameters1.equals(anariUSDParameters2);
         }
         // Create the return value
         return ((antialiasing == obj.antialiasing) &&
@@ -291,7 +306,8 @@ public final static int DEFAULT_COMPACT_DOMAINS_AUTO_THRESHOLD = 256;
                 (anariLibrarySubtype.equals(obj.anariLibrarySubtype)) &&
                 (anariRendererSubtype.equals(obj.anariRendererSubtype)) &&
                 (usingUsdDevice == obj.usingUsdDevice) &&
-                anariParameters_equal);
+                anariRendererParameters_equal &&
+                anariUSDParameters_equal);
     }
 
     // Property setting methods
@@ -555,10 +571,16 @@ public final static int DEFAULT_COMPACT_DOMAINS_AUTO_THRESHOLD = 256;
         Select(39);
     }
 
-    public void SetAnariParameters(Vector anariParameters_)
+    public void SetAnariRendererParameters(Vector anariRendererParameters_)
     {
-        anariParameters = anariParameters_;
+        anariRendererParameters = anariRendererParameters_;
         Select(40);
+    }
+
+    public void SetAnariUSDParameters(Vector anariUSDParameters_)
+    {
+        anariUSDParameters = anariUSDParameters_;
+        Select(41);
     }
 
     // Property getting methods
@@ -602,7 +624,8 @@ public final static int DEFAULT_COMPACT_DOMAINS_AUTO_THRESHOLD = 256;
     public String         GetAnariLibrarySubtype() { return anariLibrarySubtype; }
     public String         GetAnariRendererSubtype() { return anariRendererSubtype; }
     public boolean        GetUsingUsdDevice() { return usingUsdDevice; }
-    public Vector         GetAnariParameters() { return anariParameters; }
+    public Vector         GetAnariRendererParameters() { return anariRendererParameters; }
+    public Vector         GetAnariUSDParameters() { return anariUSDParameters; }
 
     // Write and read methods.
     public void WriteAtts(CommunicationBuffer buf)
@@ -688,7 +711,9 @@ public final static int DEFAULT_COMPACT_DOMAINS_AUTO_THRESHOLD = 256;
         if(WriteSelect(39, buf))
             buf.WriteBool(usingUsdDevice);
         if(WriteSelect(40, buf))
-            buf.WriteStringVector(anariParameters);
+            buf.WriteStringVector(anariRendererParameters);
+        if(WriteSelect(41, buf))
+            buf.WriteStringVector(anariUSDParameters);
     }
 
     public void ReadAtts(int index, CommunicationBuffer buf)
@@ -817,7 +842,10 @@ public final static int DEFAULT_COMPACT_DOMAINS_AUTO_THRESHOLD = 256;
             SetUsingUsdDevice(buf.ReadBool());
             break;
         case 40:
-            SetAnariParameters(buf.ReadStringVector());
+            SetAnariRendererParameters(buf.ReadStringVector());
+            break;
+        case 41:
+            SetAnariUSDParameters(buf.ReadStringVector());
             break;
         }
     }
@@ -902,7 +930,8 @@ public final static int DEFAULT_COMPACT_DOMAINS_AUTO_THRESHOLD = 256;
         str = str + stringToString("anariLibrarySubtype", anariLibrarySubtype, indent) + "\n";
         str = str + stringToString("anariRendererSubtype", anariRendererSubtype, indent) + "\n";
         str = str + boolToString("usingUsdDevice", usingUsdDevice, indent) + "\n";
-        str = str + stringVectorToString("anariParameters", anariParameters, indent) + "\n";
+        str = str + stringVectorToString("anariRendererParameters", anariRendererParameters, indent) + "\n";
+        str = str + stringVectorToString("anariUSDParameters", anariUSDParameters, indent) + "\n";
         return str;
     }
 
@@ -948,6 +977,7 @@ public final static int DEFAULT_COMPACT_DOMAINS_AUTO_THRESHOLD = 256;
     private String         anariLibrarySubtype;
     private String         anariRendererSubtype;
     private boolean        usingUsdDevice;
-    private Vector         anariParameters; // vector of String objects
+    private Vector         anariRendererParameters; // vector of String objects
+    private Vector         anariUSDParameters; // vector of String objects
 }
 

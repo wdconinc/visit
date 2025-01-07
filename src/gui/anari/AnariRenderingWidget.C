@@ -125,10 +125,9 @@ AnariRenderingWidget::AnariRenderingWidget(QvisRenderingWindow *qrw,
 
     // Widget Cache
     dynamicLayouts = new QStackedLayout();
-    int widgetIndex;
 
     // Placeholder Widget
-    widgetIndex = dynamicLayouts->addWidget(new QWidget(this));
+    int widgetIndex = dynamicLayouts->addWidget(new QWidget(this));
     dynamicLayoutMap[AnariRenderingWidget::DEFAULT_WIDGET_KEY] = widgetIndex;
 
     // USD Widget
@@ -560,7 +559,7 @@ AnariRenderingWidget::MakeWidgetFromParameterInfo(const AnariParameterInfo &para
 void
 AnariRenderingWidget::CreateDynamicWidget(anari::Device anariDevice, const char *subtype, const std::string &key, bool isUSD)
 {
-    int stackLayoutIndex = 0;
+    int stackLayoutIndex = this->dynamicLayoutMap[AnariRenderingWidget::DEFAULT_WIDGET_KEY];
 
     if(isUSD)
     {
@@ -858,8 +857,91 @@ AnariRenderingWidget::UpdateRendererSubtypes(const std::string subtype)
     rendererSubtypes->blockSignals(false);
 }
 
+// ****************************************************************************
+// Method: AnariRenderingWidget::UpdateRendererParameters
+//
+// Purpose:
+//   Updates the renderer UI elements.
+//
+// Arguments:
+//   params the list of parameters to update
+//
+// Programmer: Kevin Griffin
+// Creation:
+//
+// Modifications:
+//
+// ****************************************************************************
+
 void
-AnariRenderingWidget::UpdateParameters(const stringVector &params)
+AnariRenderingWidget::UpdateRendererParameters(const stringVector &params)
+{
+    auto widget = dynamicLayouts->currentWidget();
+    auto children = widget->findChildren<QWidget *>();
+
+    for (const auto& param : params)
+    {
+        std::string key = param.substr(0, param.find(";"));
+        std::string value = param.substr(param.find(";") + 1);
+
+        for(auto child : children)
+        {
+            std::string name = child->objectName().toStdString();
+
+            if(name.empty())
+            {
+                continue;
+            }
+
+            if(name == key)
+            {
+                if(qobject_cast<QSpinBox *>(child) != nullptr)
+                {
+                    auto spinBox = qobject_cast<QSpinBox *>(child);
+                    spinBox->blockSignals(true);
+
+                    try
+                    {
+                        auto val = std::stoi(value);
+                        spinBox->setValue(val);
+                    }
+                    catch(...)
+                    {
+                        debug5 << "[ANARI] UpdateRendererParameters - Could not convert value to int: " << value;
+                    }
+
+                    spinBox->blockSignals(false);
+                }
+                else if(qobject_cast<QLineEdit *>(child) != nullptr)
+                {
+                    auto lineEdit = qobject_cast<QLineEdit *>(child);
+                    lineEdit->blockSignals(true);
+                    lineEdit->setText(QString::fromStdString(value));
+                    lineEdit->blockSignals(false);
+                }
+                else if(qobject_cast<QCheckBox *>(child) != nullptr)
+                {
+                    auto checkBox = qobject_cast<QCheckBox *>(child);
+                    checkBox->blockSignals(true);
+                    checkBox->setChecked(value == "1");
+                    checkBox->blockSignals(false);
+                }
+                else if(qobject_cast<QComboBox *>(child) != nullptr)
+                {
+                    auto comboBox = qobject_cast<QComboBox *>(child);
+                    comboBox->blockSignals(true);
+                    comboBox->setCurrentText(QString::fromStdString(value));
+                    comboBox->blockSignals(false);
+                }
+
+                break;
+            }
+        }
+    }
+}
+
+void
+AnariRenderingWidget::UpdateUSDParameters(const stringVector &params)
 {
     // TODO: Implement
     // 1. Get the current dynamic widget
@@ -1296,13 +1378,14 @@ AnariRenderingWidget::UpdateRenderingAttributes(const bool updateApply)
 
     for(auto child : children)
     {
-        auto name = child->objectName().toStdString();
+        std::string name = child->objectName().toStdString();
 
         if(name.empty())
         {
             continue;
         }
 
+        // TODO: Remove this debug output
         std::cout << "Renderer Parameter Name: " << name.c_str() << std::endl;
 
         if(qobject_cast<QSpinBox *>(child) != nullptr)
@@ -1339,6 +1422,14 @@ AnariRenderingWidget::UpdateRenderingAttributes(const bool updateApply)
         }
     }
 
-    renderingAttributes->SetAnariParameters(params);
+    if(!this->renderingAttributes->GetUsingUsdDevice())
+    {
+        renderingAttributes->SetAnariRendererParameters(params);
+    }
+    else
+    {
+        renderingAttributes->SetAnariUSDParameters(params);
+    }
+
     renderingWindow->SetUpdateApply(updateApply);
 }

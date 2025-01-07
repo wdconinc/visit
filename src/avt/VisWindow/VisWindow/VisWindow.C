@@ -7131,10 +7131,52 @@ VisWindow::GetAnariRendererSubtype() const
 }
 
 // ****************************************************************************
-// Method: VisWindow::SetAnariParameters
+// Method: VisWindow::SetAnariRendererParameters
 //
 // Purpose:
-//   Set the string param:value pairs for ANARI
+//   Set the list of string param:value pairs for an ANARI renderer
+//
+// Arguments:
+//   params    the list of string param:value pairs
+//
+// Programmer:  Kevin Griffin
+// Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
+//
+// ****************************************************************************
+
+void
+VisWindow::SetAnariRendererParameters(const stringVector &params)
+{
+    if(params != GetAnariRendererParameters())
+    {
+        rendering->SetAnariRendererParameters(params);
+    }
+}
+
+// ****************************************************************************
+// Method: VisWindow::GetAnariRendererParameters
+//
+// Purpose:
+//   Returns the vector of param:value strings for an ANARI renderer
+//
+// Returns:    the vector of param:value strings
+//
+// Programmer:  Kevin Griffin
+// Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
+//
+// ****************************************************************************
+
+stringVector
+VisWindow::GetAnariRendererParameters() const
+{
+    return rendering->GetAnariRendererParameters();
+}
+
+// ****************************************************************************
+// Method: VisWindow::SetAnariUSDParameters
+//
+// Purpose:
+//   Set the string param:value pairs for an ANARI USD device
 //
 // Arguments:
 //   params    the string param:value pairs
@@ -7145,21 +7187,21 @@ VisWindow::GetAnariRendererSubtype() const
 // ****************************************************************************
 
 void
-VisWindow::SetAnariParameters(const stringVector &params)
+VisWindow::SetAnariUSDParameters(const stringVector &params)
 {
-    if(params != GetAnariParameters())
+    if(params != GetAnariUSDParameters())
     {
-        rendering->SetAnariParameters(params);
+        rendering->SetAnariUSDParameters(params);
     }
 }
 
 // ****************************************************************************
-// Method: VisWindow::GetAnariParameters
+// Method: VisWindow::GetAnariUSDParameters
 //
 // Purpose:
-//   Returns the vector of param:value strings
+//   Returns the vector of param:value strings for an ANARI USD device
 //
-// Returns:    the vector of param:value strings for ANARI
+// Returns:    the vector of param:value strings
 //
 // Programmer:  Kevin Griffin
 // Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
@@ -7167,9 +7209,9 @@ VisWindow::SetAnariParameters(const stringVector &params)
 // ****************************************************************************
 
 stringVector
-VisWindow::GetAnariParameters() const
+VisWindow::GetAnariUSDParameters() const
 {
-    return rendering->GetAnariParameters();
+    return rendering->GetAnariUSDParameters();
 }
 
 // ****************************************************************************

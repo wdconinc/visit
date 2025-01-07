@@ -58,7 +58,8 @@ public:
     void UpdateRendererSubtypes(const std::string);
 
     // Dynamic
-    void UpdateParameters(const stringVector &);
+    void UpdateRendererParameters(const stringVector &);
+    void UpdateUSDParameters(const stringVector &);
 
 signals:
     void currentBackendChanged(int);

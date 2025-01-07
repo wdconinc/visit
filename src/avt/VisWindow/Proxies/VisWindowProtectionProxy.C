@@ -1311,11 +1311,12 @@ VisWindowProtectionProxy::ProxiedGetAnariRendererSubtype()
 }
 
 // ****************************************************************************
-// Method: VisWindowProtectionProxy::ProxiedGetAnariParameterNames
+// Method: VisWindowProtectionProxy::ProxiedGetAnariRendererParameters
 //
-// Purpose:     Get the ANARI parameter names
+// Purpose:     Get the list of ANARI renderer parameters in the form of
+//              param;value.
 //
-// Returns:     ANARI parameter names
+// Returns:     list of ANARI renderer parameters
 //
 // Programmer:  Kevin Griffin
 // Creation:    Wed 30 Mar 2022 03:43:48 PM PDT
@@ -1323,9 +1324,27 @@ VisWindowProtectionProxy::ProxiedGetAnariRendererSubtype()
 // ****************************************************************************
 
 stringVector
-VisWindowProtectionProxy::ProxiedGetAnariParameters()
+VisWindowProtectionProxy::ProxiedGetAnariRendererParameters()
 {
-    return viswin->GetAnariParameters();
+    return viswin->GetAnariRendererParameters();
+}
+
+// ****************************************************************************
+// Method: VisWindowProtectionProxy::ProxiedGetAnariUSDParameters
+//
+// Purpose:     Get the list of ANARI USD parameters in the form of param;value.
+//
+// Returns:     list of ANARI USD parameters
+//
+// Programmer:  Kevin Griffin
+// Creation:    Wed 30 Mar 2022 03:43:48 PM PDT
+//
+// ****************************************************************************
+
+stringVector
+VisWindowProtectionProxy::ProxiedGetAnariUSDParameters()
+{
+    return viswin->GetAnariUSDParameters();
 }
 
 // ****************************************************************************

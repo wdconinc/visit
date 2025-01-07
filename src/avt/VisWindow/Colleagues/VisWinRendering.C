@@ -264,7 +264,8 @@ VisWinRendering::VisWinRendering(VisWindowColleagueProxy &p) :
     anariLibraryName = "";
     anariLibrarySubtype = "default";
     anariRendererSubtype = "default";
-    anariParameters = stringVector();
+    anariRendererParameters = stringVector();
+    anariUSDParameters = stringVector();
     usingUsdDevice = false;
 
     anariPass = CreateAnariPass();
@@ -3253,10 +3254,10 @@ VisWinRendering::SetAnariRendererSubtype(const std::string subtype)
 }
 
 // ****************************************************************************
-// Method: VisWinRendering::SetAnariParameters
+// Method: VisWinRendering::SetAnariRendererParameters
 //
 // Purpose:
-//   Sets the vector of param:value strings
+//   Sets the vector of param:value strings used to set ANARI renderer params.
 //
 // Arguments:
 //   params  The list of param:value strings
@@ -3267,12 +3268,36 @@ VisWinRendering::SetAnariRendererSubtype(const std::string subtype)
 // ****************************************************************************
 
 void
-VisWinRendering::SetAnariParameters(const stringVector &params)
+VisWinRendering::SetAnariRendererParameters(const stringVector &params)
 {
-    if(anariParameters != params)
+    if(anariRendererParameters != params)
     {
-        anariParameters = params;
-        vtkAnariRendererNode::SetAnariParameters(params, canvas);
+        anariRendererParameters = params;
+        vtkAnariRendererNode::SetAnariRendererParameters(params, canvas);
+    }
+}
+
+// ****************************************************************************
+// Method: VisWinRendering::SetAnariUSDParameters
+//
+// Purpose:
+//   Sets the vector of param:value strings used to set ANARI USD parameters
+//
+// Arguments:
+//   params  The list of param:value strings
+//
+// Programmer:  Kevin Griffin
+// Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
+//
+// ****************************************************************************
+
+void
+VisWinRendering::SetAnariUSDParameters(const stringVector &params)
+{
+    if(anariUSDParameters != params)
+    {
+        anariUSDParameters = params;
+        vtkAnariRendererNode::SetAnariUSDParameters(params, canvas);
     }
 }
 

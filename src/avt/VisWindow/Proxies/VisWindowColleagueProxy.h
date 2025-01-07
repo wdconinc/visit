@@ -268,7 +268,8 @@ class VISWINDOW_API VisWindowColleagueProxy : public VisWindowProtectionProxy
     std::string GetAnariLibraryName()       { return ProxiedGetAnariLibraryName(); }
     std::string GetAnariLibrarySubtype()    { return ProxiedGetAnariLibrarySubtype(); }
     std::string GetAnariRendererSubtype()   { return ProxiedGetAnariRendererSubtype(); }
-    stringVector GetAnariParameters()       { return ProxiedGetAnariParameters(); }
+    stringVector GetAnariRendererParameters()       { return ProxiedGetAnariRendererParameters(); }
+    stringVector GetAnariUSDParameters()    { return ProxiedGetAnariUSDParameters(); }
     bool        GetUsingUsdDevice()         { return ProxiedGetUsingUsdDevice(); }
 #endif
 };

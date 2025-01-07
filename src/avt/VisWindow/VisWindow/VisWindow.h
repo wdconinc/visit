@@ -730,8 +730,10 @@ public:
     std::string         GetAnariLibrarySubtype() const;
     void                SetAnariRendererSubtype(const std::string);
     std::string         GetAnariRendererSubtype() const;
-    void                SetAnariParameters(const stringVector &);
-    stringVector        GetAnariParameters() const;
+    void                SetAnariRendererParameters(const stringVector &);
+    stringVector        GetAnariRendererParameters() const;
+    void                SetAnariUSDParameters(const stringVector &);
+    stringVector        GetAnariUSDParameters() const;
     void                SetUsingUsdDevice(const bool);
     bool                GetUsingUsdDevice() const;
 #endif

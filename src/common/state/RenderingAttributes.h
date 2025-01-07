@@ -84,7 +84,8 @@ public:
     void SelectAnariLibrary();
     void SelectAnariLibrarySubtype();
     void SelectAnariRendererSubtype();
-    void SelectAnariParameters();
+    void SelectAnariRendererParameters();
+    void SelectAnariUSDParameters();
 
     // Property setting methods
     void SetAntialiasing(bool antialiasing_);
@@ -127,7 +128,8 @@ public:
     void SetAnariLibrarySubtype(const std::string &anariLibrarySubtype_);
     void SetAnariRendererSubtype(const std::string &anariRendererSubtype_);
     void SetUsingUsdDevice(bool usingUsdDevice_);
-    void SetAnariParameters(const stringVector &anariParameters_);
+    void SetAnariRendererParameters(const stringVector &anariRendererParameters_);
+    void SetAnariUSDParameters(const stringVector &anariUSDParameters_);
 
     // Property getting methods
     bool                 GetAntialiasing() const;
@@ -176,8 +178,10 @@ public:
     const std::string    &GetAnariRendererSubtype() const;
           std::string    &GetAnariRendererSubtype();
     bool                 GetUsingUsdDevice() const;
-    const stringVector   &GetAnariParameters() const;
-          stringVector   &GetAnariParameters();
+    const stringVector   &GetAnariRendererParameters() const;
+          stringVector   &GetAnariRendererParameters();
+    const stringVector   &GetAnariUSDParameters() const;
+          stringVector   &GetAnariUSDParameters();
 
     // Persistence methods
     virtual bool CreateNode(DataNode *node, bool completeSave, bool forceAdd);
@@ -252,7 +256,8 @@ public:
         ID_anariLibrarySubtype,
         ID_anariRendererSubtype,
         ID_usingUsdDevice,
-        ID_anariParameters,
+        ID_anariRendererParameters,
+        ID_anariUSDParameters,
         ID__LAST
     };
 
@@ -297,12 +302,13 @@ private:
     std::string    anariLibrarySubtype;
     std::string    anariRendererSubtype;
     bool           usingUsdDevice;
-    stringVector   anariParameters;
+    stringVector   anariRendererParameters;
+    stringVector   anariUSDParameters;
 
     // Static class format string for type map.
     static const char *TypeMapFormatString;
     static const private_tmfs_t TmfsStruct;
 };
-#define RENDERINGATTRIBUTES_TMFS "bbiiiibdibfibibiibffabdbbDDibiibiibbsssbs*"
+#define RENDERINGATTRIBUTES_TMFS "bbiiiibdibfibibiibffabdbbDDibiibiibbsssbs*s*"
 
 #endif

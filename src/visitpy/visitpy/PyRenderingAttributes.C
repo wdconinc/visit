@@ -285,14 +285,30 @@ PyRenderingAttributes_ToString(const RenderingAttributes *atts, const char *pref
     else
         snprintf(tmpStr, 1000, "%susingUsdDevice = 0\n", prefix);
     str += tmpStr;
-    {   const stringVector &anariParameters = atts->GetAnariParameters();
-        snprintf(tmpStr, 1000, "%sanariParameters = (", prefix);
+    {   const stringVector &anariRendererParameters = atts->GetAnariRendererParameters();
+        snprintf(tmpStr, 1000, "%sanariRendererParameters = (", prefix);
         str += tmpStr;
-        for(size_t i = 0; i < anariParameters.size(); ++i)
+        for(size_t i = 0; i < anariRendererParameters.size(); ++i)
         {
-            snprintf(tmpStr, 1000, "\"%s\"", anariParameters[i].c_str());
+            snprintf(tmpStr, 1000, "\"%s\"", anariRendererParameters[i].c_str());
             str += tmpStr;
-            if(i < anariParameters.size() - 1)
+            if(i < anariRendererParameters.size() - 1)
+            {
+                snprintf(tmpStr, 1000, ", ");
+                str += tmpStr;
+            }
+        }
+        snprintf(tmpStr, 1000, ")\n");
+        str += tmpStr;
+    }
+    {   const stringVector &anariUSDParameters = atts->GetAnariUSDParameters();
+        snprintf(tmpStr, 1000, "%sanariUSDParameters = (", prefix);
+        str += tmpStr;
+        for(size_t i = 0; i < anariUSDParameters.size(); ++i)
+        {
+            snprintf(tmpStr, 1000, "\"%s\"", anariUSDParameters[i].c_str());
+            str += tmpStr;
+            if(i < anariUSDParameters.size() - 1)
             {
                 snprintf(tmpStr, 1000, ", ");
                 str += tmpStr;
@@ -2772,7 +2788,7 @@ RenderingAttributes_GetUsingUsdDevice(PyObject *self, PyObject *args)
 }
 
 /*static*/ PyObject *
-RenderingAttributes_SetAnariParameters(PyObject *self, PyObject *args)
+RenderingAttributes_SetAnariRendererParameters(PyObject *self, PyObject *args)
 {
     RenderingAttributesObject *obj = (RenderingAttributesObject *)self;
 
@@ -2820,23 +2836,92 @@ RenderingAttributes_SetAnariParameters(PyObject *self, PyObject *args)
     else
         return PyErr_Format(PyExc_TypeError, "arg(s) must be one or more string(s)");
 
-    obj->data->GetAnariParameters() = vec;
-    // Mark the anariParameters in the object as modified.
-    obj->data->SelectAnariParameters();
+    obj->data->GetAnariRendererParameters() = vec;
+    // Mark the anariRendererParameters in the object as modified.
+    obj->data->SelectAnariRendererParameters();
 
     Py_INCREF(Py_None);
     return Py_None;
 }
 
 /*static*/ PyObject *
-RenderingAttributes_GetAnariParameters(PyObject *self, PyObject *args)
+RenderingAttributes_GetAnariRendererParameters(PyObject *self, PyObject *args)
 {
     RenderingAttributesObject *obj = (RenderingAttributesObject *)self;
-    // Allocate a tuple the with enough entries to hold the anariParameters.
-    const stringVector &anariParameters = obj->data->GetAnariParameters();
-    PyObject *retval = PyTuple_New(anariParameters.size());
-    for(size_t i = 0; i < anariParameters.size(); ++i)
-        PyTuple_SET_ITEM(retval, i, PyString_FromString(anariParameters[i].c_str()));
+    // Allocate a tuple the with enough entries to hold the anariRendererParameters.
+    const stringVector &anariRendererParameters = obj->data->GetAnariRendererParameters();
+    PyObject *retval = PyTuple_New(anariRendererParameters.size());
+    for(size_t i = 0; i < anariRendererParameters.size(); ++i)
+        PyTuple_SET_ITEM(retval, i, PyString_FromString(anariRendererParameters[i].c_str()));
+    return retval;
+}
+
+/*static*/ PyObject *
+RenderingAttributes_SetAnariUSDParameters(PyObject *self, PyObject *args)
+{
+    RenderingAttributesObject *obj = (RenderingAttributesObject *)self;
+
+    stringVector vec;
+
+    if (PyUnicode_Check(args))
+    {
+        char const *val = PyUnicode_AsUTF8(args);
+        std::string cval = std::string(val);
+        if (val == 0 && PyErr_Occurred())
+        {
+            PyErr_Clear();
+            return PyErr_Format(PyExc_TypeError, "arg not interpretable as C++ string");
+        }
+        vec.resize(1);
+        vec[0] = cval;
+    }
+    else if (PySequence_Check(args))
+    {
+        vec.resize(PySequence_Size(args));
+        for (Py_ssize_t i = 0; i < PySequence_Size(args); i++)
+        {
+            PyObject *item = PySequence_GetItem(args, i);
+
+            if (!PyUnicode_Check(item))
+            {
+                Py_DECREF(item);
+                return PyErr_Format(PyExc_TypeError, "arg %d is not a unicode string", (int) i);
+            }
+
+            char const *val = PyUnicode_AsUTF8(item);
+            std::string cval = std::string(val);
+
+            if (val == 0 && PyErr_Occurred())
+            {
+                Py_DECREF(item);
+                PyErr_Clear();
+                return PyErr_Format(PyExc_TypeError, "arg %d not interpretable as C++ string", (int) i);
+            }
+            Py_DECREF(item);
+
+            vec[i] = cval;
+        }
+    }
+    else
+        return PyErr_Format(PyExc_TypeError, "arg(s) must be one or more string(s)");
+
+    obj->data->GetAnariUSDParameters() = vec;
+    // Mark the anariUSDParameters in the object as modified.
+    obj->data->SelectAnariUSDParameters();
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+/*static*/ PyObject *
+RenderingAttributes_GetAnariUSDParameters(PyObject *self, PyObject *args)
+{
+    RenderingAttributesObject *obj = (RenderingAttributesObject *)self;
+    // Allocate a tuple the with enough entries to hold the anariUSDParameters.
+    const stringVector &anariUSDParameters = obj->data->GetAnariUSDParameters();
+    PyObject *retval = PyTuple_New(anariUSDParameters.size());
+    for(size_t i = 0; i < anariUSDParameters.size(); ++i)
+        PyTuple_SET_ITEM(retval, i, PyString_FromString(anariUSDParameters[i].c_str()));
     return retval;
 }
 
@@ -2924,8 +3009,10 @@ PyMethodDef PyRenderingAttributes_methods[RENDERINGATTRIBUTES_NMETH] = {
     {"GetAnariRendererSubtype", RenderingAttributes_GetAnariRendererSubtype, METH_VARARGS},
     {"SetUsingUsdDevice", RenderingAttributes_SetUsingUsdDevice, METH_VARARGS},
     {"GetUsingUsdDevice", RenderingAttributes_GetUsingUsdDevice, METH_VARARGS},
-    {"SetAnariParameters", RenderingAttributes_SetAnariParameters, METH_VARARGS},
-    {"GetAnariParameters", RenderingAttributes_GetAnariParameters, METH_VARARGS},
+    {"SetAnariRendererParameters", RenderingAttributes_SetAnariRendererParameters, METH_VARARGS},
+    {"GetAnariRendererParameters", RenderingAttributes_GetAnariRendererParameters, METH_VARARGS},
+    {"SetAnariUSDParameters", RenderingAttributes_SetAnariUSDParameters, METH_VARARGS},
+    {"GetAnariUSDParameters", RenderingAttributes_GetAnariUSDParameters, METH_VARARGS},
     {NULL, NULL}
 };
 
@@ -3064,8 +3151,10 @@ PyRenderingAttributes_getattr(PyObject *self, char *name)
         return RenderingAttributes_GetAnariRendererSubtype(self, NULL);
     if(strcmp(name, "usingUsdDevice") == 0)
         return RenderingAttributes_GetUsingUsdDevice(self, NULL);
-    if(strcmp(name, "anariParameters") == 0)
-        return RenderingAttributes_GetAnariParameters(self, NULL);
+    if(strcmp(name, "anariRendererParameters") == 0)
+        return RenderingAttributes_GetAnariRendererParameters(self, NULL);
+    if(strcmp(name, "anariUSDParameters") == 0)
+        return RenderingAttributes_GetAnariUSDParameters(self, NULL);
 
 
     // Add a __dict__ answer so that dir() works
@@ -3168,8 +3257,10 @@ PyRenderingAttributes_setattr(PyObject *self, char *name, PyObject *args)
         obj = RenderingAttributes_SetAnariRendererSubtype(self, args);
     else if(strcmp(name, "usingUsdDevice") == 0)
         obj = RenderingAttributes_SetUsingUsdDevice(self, args);
-    else if(strcmp(name, "anariParameters") == 0)
-        obj = RenderingAttributes_SetAnariParameters(self, args);
+    else if(strcmp(name, "anariRendererParameters") == 0)
+        obj = RenderingAttributes_SetAnariRendererParameters(self, args);
+    else if(strcmp(name, "anariUSDParameters") == 0)
+        obj = RenderingAttributes_SetAnariUSDParameters(self, args);
 
     if (obj != NULL && obj != &NULL_PY_OBJ)
         Py_DECREF(obj);

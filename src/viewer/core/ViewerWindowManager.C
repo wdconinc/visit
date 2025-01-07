@@ -3614,8 +3614,10 @@ ViewerWindowManager::SetRenderingAttributes(int windowIndex)
         windows[index]->SetAnariLibrarySubtype(ratts->GetAnariLibrarySubtype());
     if (windows[index]->GetAnariRendererSubtype().compare(ratts->GetAnariRendererSubtype()) != 0)
         windows[index]->SetAnariRendererSubtype(ratts->GetAnariRendererSubtype());
-    if (windows[index]->GetAnariParameters() != ratts->GetAnariParameters())
-        windows[index]->SetAnariParameters(ratts->GetAnariParameters());
+    if (windows[index]->GetAnariRendererParameters() != ratts->GetAnariRendererParameters())
+        windows[index]->SetAnariRendererParameters(ratts->GetAnariRendererParameters());
+    if (windows[index]->GetAnariUSDParameters() != ratts->GetAnariUSDParameters())
+        windows[index]->SetAnariUSDParameters(ratts->GetAnariUSDParameters());
     if (windows[index]->GetUsingUsdDevice() != ratts->GetUsingUsdDevice())
         windows[index]->SetUsingUsdDevice(ratts->GetUsingUsdDevice());
 #endif
@@ -5276,7 +5278,8 @@ ViewerWindowManager::UpdateRenderingAtts(int windowIndex)
         GetViewerState()->GetRenderingAttributes()->SetAnariLibrary(win->GetAnariLibraryName());
         GetViewerState()->GetRenderingAttributes()->SetAnariLibrarySubtype(win->GetAnariLibrarySubtype());
         GetViewerState()->GetRenderingAttributes()->SetAnariRendererSubtype(win->GetAnariRendererSubtype());
-        GetViewerState()->GetRenderingAttributes()->SetAnariParameters(win->GetAnariParameters());
+        GetViewerState()->GetRenderingAttributes()->SetAnariRendererParameters(win->GetAnariRendererParameters());
+        GetViewerState()->GetRenderingAttributes()->SetAnariUSDParameters(win->GetAnariUSDParameters());
         GetViewerState()->GetRenderingAttributes()->SetUsingUsdDevice(win->GetUsingUsdDevice());
 #endif
 

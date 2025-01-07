@@ -8835,24 +8835,25 @@ ViewerWindow::GetAnariRendererSubtype() const
 }
 
 // ****************************************************************************
-// Method:  ViewerWindow::SetAnariParameters
+// Method:  ViewerWindow::SetAnariRendererParameters
 //
-// @see VisWindow::SetAnariParameters
+// @see VisWindow::SetAnariRendererParameters
 //
 // Programmer:  Kevin Griffin
 // Creation:    Fri 01 Apr 2022 10:47:52 AM PDT
 //
 // ****************************************************************************
 
-void SetAnariParameters(const stringVector &params)
+void
+ViewerWindow::SetAnariRendererParameters(const stringVector &params)
 {
-    visWindow->SetAnariParameters(params);
+    visWindow->SetAnariRendererParameters(params);
 }
 
 // ****************************************************************************
-// Method: ViewerWindow::GetAnariParameters
+// Method: ViewerWindow::GetAnariRendererParameters
 //
-// @see VisWindow::GetAnariParameters
+// @see VisWindow::GetAnariRendererParameters
 //
 // Programmer:  Kevin Griffin
 // Creation:    Fri 01 Apr 2022 10:47:52 AM PDT
@@ -8860,9 +8861,41 @@ void SetAnariParameters(const stringVector &params)
 // ****************************************************************************
 
 stringVector
-ViewerWindow::GetAnariParameters() const
+ViewerWindow::GetAnariRendererParameters() const
 {
-    return visWindow->GetAnariParameters();
+    return visWindow->GetAnariRendererParameters();
+}
+
+// ****************************************************************************
+// Method:  ViewerWindow::SetAnariUSDParameters
+//
+// @see VisWindow::SetAnariUSDParameters
+//
+// Programmer:  Kevin Griffin
+// Creation:    Fri 01 Apr 2022 10:47:52 AM PDT
+//
+// ****************************************************************************
+
+void
+ViewerWindow::SetAnariUSDParameters(const stringVector &params)
+{
+    visWindow->SetAnariUSDParameters(params);
+}
+
+// ****************************************************************************
+// Method: ViewerWindow::GetAnariUSDParameters
+//
+// @see VisWindow::GetAnariUSDParameters
+//
+// Programmer:  Kevin Griffin
+// Creation:    Fri 01 Apr 2022 10:47:52 AM PDT
+//
+// ****************************************************************************
+
+stringVector
+ViewerWindow::GetAnariUSDParameters() const
+{
+    return visWindow->GetAnariUSDParameters();
 }
 
 // ****************************************************************************

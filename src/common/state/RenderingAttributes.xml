@@ -142,7 +142,9 @@
     <Field name="usingUsdDevice" label="Using USD Device" type="bool">
       false
     </Field>
-    <Field name="anariParameters" label="ANARI Parameters" type="stringVector">
+    <Field name="anariRendererParameters" label="ANARI Renderer Parameters" type="stringVector">
+    </Field>
+    <Field name="anariUSDParameters" label="ANARI USD Parameters" type="stringVector">
     </Field>
     <Function name="GetEffectiveScalableThreshold" user="true" member="true">
     </Function>
