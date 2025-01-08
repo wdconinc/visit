@@ -363,7 +363,9 @@ AnariRenderingWidget::MakeWidgetFromParameterInfo(const AnariParameterInfo &para
         return nullptr;
     }
 
-    switch(paramInfo.GetType())
+    auto anariDataType = paramInfo.GetType();
+
+    switch(anariDataType)
     {
         case ANARI_INT32:
         {
@@ -522,6 +524,83 @@ AnariRenderingWidget::MakeWidgetFromParameterInfo(const AnariParameterInfo &para
                     this, &AnariRenderingWidget::checkBoxToggled);
 
             return checkBox;
+        }
+        case ANARI_INT32_VEC3: case ANARI_FLOAT32_VEC3: case ANARI_FLOAT64_VEC3:
+        {
+            QLineEdit *lineEdit = new QLineEdit();
+            lineEdit->setObjectName(paramInfo.GetName().c_str());
+
+            if(paramInfo.m_defaultValue)
+            {
+                auto vecPtr = paramInfo.m_defaultValue;
+
+                if(anariDataType == ANARI_INT32_VEC3)
+                {
+                    auto intVecPtr = static_cast<const int *>(vecPtr);
+                    lineEdit->setText(QString::number(intVecPtr[0]) + " " +
+                                      QString::number(intVecPtr[1]) + " " +
+                                      QString::number(intVecPtr[2]));
+                }
+                else if(anariDataType == ANARI_FLOAT32_VEC3)
+                {
+                    auto floatVecPtr = static_cast<const float *>(vecPtr);
+                    lineEdit->setText(QString::number(floatVecPtr[0]) + " " +
+                                      QString::number(floatVecPtr[1]) + " " +
+                                      QString::number(floatVecPtr[2]));
+                }
+                else if(anariDataType == ANARI_FLOAT64_VEC3)
+                {
+                    auto doubleVecPtr = static_cast<const double *>(vecPtr);
+                    lineEdit->setText(QString::number(doubleVecPtr[0]) + " " +
+                                      QString::number(doubleVecPtr[1]) + " " +
+                                      QString::number(doubleVecPtr[2]));
+                }
+            }
+
+            connect(lineEdit, &QLineEdit::editingFinished,
+                    this, &AnariRenderingWidget::lineEditingFinished);
+
+            return lineEdit;
+        }
+        case ANARI_INT32_VEC4: case ANARI_FLOAT32_VEC4: case ANARI_FLOAT64_VEC4:
+        {
+            QLineEdit *lineEdit = new QLineEdit();
+            lineEdit->setObjectName(paramInfo.GetName().c_str());
+
+            if(paramInfo.m_defaultValue)
+            {
+                auto vecPtr = paramInfo.m_defaultValue;
+
+                if(anariDataType == ANARI_INT32_VEC4)
+                {
+                    auto intVecPtr = static_cast<const int *>(vecPtr);
+                    lineEdit->setText(QString::number(intVecPtr[0]) + " " +
+                                      QString::number(intVecPtr[1]) + " " +
+                                      QString::number(intVecPtr[2]) + " " +
+                                      QString::number(intVecPtr[3]));
+                }
+                else if(anariDataType == ANARI_FLOAT32_VEC4)
+                {
+                    auto floatVecPtr = static_cast<const float *>(vecPtr);
+                    lineEdit->setText(QString::number(floatVecPtr[0]) + " " +
+                                      QString::number(floatVecPtr[1]) + " " +
+                                      QString::number(floatVecPtr[2]) + " " +
+                                      QString::number(floatVecPtr[3]));
+                }
+                else if(anariDataType == ANARI_FLOAT64_VEC4)
+                {
+                    auto doubleVecPtr = static_cast<const double *>(vecPtr);
+                    lineEdit->setText(QString::number(doubleVecPtr[0]) + " " +
+                                      QString::number(doubleVecPtr[1]) + " " +
+                                      QString::number(doubleVecPtr[2]) + " " +
+                                      QString::number(doubleVecPtr[3]));
+                }
+            }
+
+            connect(lineEdit, &QLineEdit::editingFinished,
+                    this, &AnariRenderingWidget::lineEditingFinished);
+
+            return lineEdit;
         }
         default:
         {
@@ -1373,7 +1452,7 @@ void
 AnariRenderingWidget::UpdateRenderingAttributes(const bool updateApply)
 {
     auto widget = dynamicLayouts->currentWidget();
-    auto children = widget->findChildren<QWidget *>();
+    auto children = widget->findChildren<QWidget *>(Qt::FindDirectChildrenOnly);
     stringVector params;
 
     for(auto child : children)
