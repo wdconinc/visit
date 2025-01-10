@@ -87,6 +87,7 @@ private:
     AnariParameterInfo GetParameterInfo(anari::Device, ANARIDataType, const char *, const ANARIParameter *);
     QWidget *MakeWidgetFromParameterInfo(const AnariParameterInfo &);
     void UpdateRenderingAttributes(const bool);
+    void ClearAnariParameterAttributes();
 
     QvisRenderingWindow *renderingWindow;
     RenderingAttributes *renderingAttributes;

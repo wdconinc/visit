@@ -1163,7 +1163,7 @@ AnariRenderingWidget::libraryChanged()
         anari::release(anariDevice, anariDevice);
         anariUnloadLibrary(anariLibrary);
 
-        renderingWindow->SetUpdateApply(false);
+        UpdateRenderingAttributes(false);
     }
     else
     {
@@ -1198,6 +1198,7 @@ AnariRenderingWidget::libraryChanged()
 
         // Reset to blank widget
         emit currentBackendChanged(0);
+        ClearAnariParameterAttributes();
         renderingWindow->SetUpdateApply(false);
     }
 }
@@ -1259,12 +1260,13 @@ AnariRenderingWidget::librarySubtypeChanged(const QString &subtype)
         anari::release(anariDevice, anariDevice);
         anariUnloadLibrary(anariLibrary);
 
-        renderingWindow->SetUpdateApply(false);
+        UpdateRenderingAttributes(false);
     }
     else
     {
         debug1 << "Could not create the ANARI back-end device (" << libname << ") to update the Rendering UI." << std::endl;
         emit currentBackendChanged(0);
+        ClearAnariParameterAttributes();
         renderingWindow->SetUpdateApply(false);
     }
 }
@@ -1307,12 +1309,15 @@ AnariRenderingWidget::rendererSubtypeChanged(const QString &subtype)
         anari::release(anariDevice, anariDevice);
         anariUnloadLibrary(anariLibrary);
 
-        renderingWindow->SetUpdateApply(false);
+        UpdateRenderingAttributes(false);
     }
     else
     {
         debug1 << "Could not create the ANARI back-end device (" << libname << ") to update the Rendering UI." << std::endl;
         emit currentBackendChanged(0);
+
+        // Clear Parameters
+        ClearAnariParameterAttributes();
         renderingWindow->SetUpdateApply(false);
     }
 }
@@ -1511,4 +1516,24 @@ AnariRenderingWidget::UpdateRenderingAttributes(const bool updateApply)
     }
 
     renderingWindow->SetUpdateApply(updateApply);
+}
+
+// ****************************************************************************
+// Method: AnariRenderingWidget::ClearAnariParameterAttributes
+//
+// Purpose:
+//      Clears the ANARI Renderer and USD parameters.
+//
+// Programmer:  Kevin Griffin
+// Creation:    Fri Mar 11 12:27:45 PDT 2022
+//
+// Modifications:
+//
+// ****************************************************************************
+
+void AnariRenderingWidget::ClearAnariParameterAttributes()
+{
+    stringVector params;
+    renderingAttributes->SetAnariRendererParameters(params);
+    renderingAttributes->SetAnariUSDParameters(params);
 }
