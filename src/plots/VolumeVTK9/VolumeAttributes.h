@@ -176,6 +176,7 @@ public:
     void SetLowGradientLightingClampFlag(bool lowGradientLightingClampFlag_);
     void SetLowGradientLightingClampValue(double lowGradientLightingClampValue_);
     void SetMaterialProperties(const double *materialProperties_);
+    // TODO: Remove these
     void SetAnariRendering(bool anariRendering_);
     void SetAnariSPP(int anariSPP_);
     void SetAnariAO(int anariAO_);

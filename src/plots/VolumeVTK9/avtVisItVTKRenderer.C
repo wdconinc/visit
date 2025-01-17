@@ -43,7 +43,6 @@
 
 #ifdef VISIT_ANARI
     #include <vtkAnariVolumeMapper.h>
-    #include <vtkAnariRendererNode.h>
 #endif
 
 #include <string>
@@ -626,7 +625,7 @@ avtVisItVTKRenderer::UpdateRenderingState(vtkDataSet * in_ds,
         if( m_atts.GetAnariRendering() )
         {
             m_volumeMapper = vtkAnariVolumeMapper::New();
-            m_volumeMapper->SetBlendModeToComposite();
+            // m_volumeMapper->SetBlendModeToComposite();
             LOCAL_DEBUG << "ANARI Volume Mapper " << std::endl;
         }
 #endif
@@ -808,26 +807,27 @@ avtVisItVTKRenderer::UpdateRenderingState(vtkDataSet * in_ds,
     if( m_atts.GetAnariRendering() )
     {
         LOCAL_DEBUG << "ANARI Rendering " << std::endl;
+        // TODO: Set the ANARI parameters the new way
 
         auto anariVolumeMapper = vtkAnariVolumeMapper::SafeDownCast(m_volumeMapper);
-        anariVolumeMapper->SetLibraryName(m_atts.GetAnariLibrary());
-        anariVolumeMapper->SetLibrarySubtype(m_atts.GetAnariLibrarySubtype());
-        anariVolumeMapper->SetRendererSubtype(m_atts.GetAnariRendererSubtype());
-        anariVolumeMapper->SetSamplesPerPixel(m_atts.GetAnariSPP());
-        anariVolumeMapper->SetAmbientSamples(m_atts.GetAnariAO());
-        anariVolumeMapper->SetLightFalloff(m_atts.GetAnariLightFalloff());
-        anariVolumeMapper->SetAmbientIntensity(m_atts.GetAnariAmbientIntensity());
-        anariVolumeMapper->SetMaxDepth(m_atts.GetAnariMaxDepth());
-        anariVolumeMapper->SetRValue(m_atts.GetAnariRValue());
-        // USD
-        anariVolumeMapper->SetUsdDirectory(m_atts.GetUsdDir());
-        anariVolumeMapper->SetUsdAtCommit(m_atts.GetUsdAtCommit());
-        anariVolumeMapper->SetUsdOutputBinary(m_atts.GetUsdOutputBinary());
-        anariVolumeMapper->SetUsdOutputMaterial(m_atts.GetUsdOutputMaterial());
-        anariVolumeMapper->SetUsdOutputPreview(m_atts.GetUsdOutputPreviewSurface());
-        anariVolumeMapper->SetUsdOutputMDL(m_atts.GetUsdOutputMDL());
-        anariVolumeMapper->SetUsdOutputMDLColors(m_atts.GetUsdOutputMDLColors());
-        anariVolumeMapper->SetUsdOutputDisplayColors(m_atts.GetUsdOutputDisplayColors());
+        // anariVolumeMapper->SetLibraryName(m_atts.GetAnariLibrary());
+        // anariVolumeMapper->SetLibrarySubtype(m_atts.GetAnariLibrarySubtype());
+        // anariVolumeMapper->SetRendererSubtype(m_atts.GetAnariRendererSubtype());
+        // anariVolumeMapper->SetSamplesPerPixel(m_atts.GetAnariSPP());
+        // anariVolumeMapper->SetAmbientSamples(m_atts.GetAnariAO());
+        // anariVolumeMapper->SetLightFalloff(m_atts.GetAnariLightFalloff());
+        // anariVolumeMapper->SetAmbientIntensity(m_atts.GetAnariAmbientIntensity());
+        // anariVolumeMapper->SetMaxDepth(m_atts.GetAnariMaxDepth());
+        // anariVolumeMapper->SetRValue(m_atts.GetAnariRValue());
+        // // USD
+        // anariVolumeMapper->SetUsdDirectory(m_atts.GetUsdDir());
+        // anariVolumeMapper->SetUsdAtCommit(m_atts.GetUsdAtCommit());
+        // anariVolumeMapper->SetUsdOutputBinary(m_atts.GetUsdOutputBinary());
+        // anariVolumeMapper->SetUsdOutputMaterial(m_atts.GetUsdOutputMaterial());
+        // anariVolumeMapper->SetUsdOutputPreview(m_atts.GetUsdOutputPreviewSurface());
+        // anariVolumeMapper->SetUsdOutputMDL(m_atts.GetUsdOutputMDL());
+        // anariVolumeMapper->SetUsdOutputMDLColors(m_atts.GetUsdOutputMDLColors());
+        // anariVolumeMapper->SetUsdOutputDisplayColors(m_atts.GetUsdOutputDisplayColors());
     }
 #endif
 }

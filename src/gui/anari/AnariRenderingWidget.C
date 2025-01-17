@@ -37,35 +37,39 @@ namespace anari_visit
                         anari::Object source, anari::DataType sourceType, anari::StatusSeverity severity,
                         anari::StatusCode code, const char* message)
     {
-        std::cerr << message << std::endl;
-        // if (severity == ANARI_SEVERITY_FATAL_ERROR)
-        // {
-        //     std::cout << "[ANARI::FATAL] " << message;
-        // }
-        // else if (severity == ANARI_SEVERITY_ERROR)
-        // {
-        //     std::cout << "[ANARI::ERROR] " << %s, DataType: %d\n", message, (int)sourceType);
-        // }
-        // else if (severity == ANARI_SEVERITY_WARNING)
-        // {
-        //     std::cout(WARNING, "[ANARI::WARN] %s, DataType: %d\n", message, (int)sourceType);
-        // }
-        // else if (severity == ANARI_SEVERITY_PERFORMANCE_WARNING)
-        // {
-        //     std::cout(WARNING, "[ANARI::PERF] %s\n", message);
-        // }
-        // else if (severity == ANARI_SEVERITY_INFO)
-        // {
-        //     std::cout(INFO, "[ANARI::INFO] %s\n", message);
-        // }
-        // else if (severity == ANARI_SEVERITY_DEBUG)
-        // {
-        //     std::cout(TRACE, "[ANARI::DEBUG] %s\n", message);
-        // }
-        // else
-        // {
-        //     std::cout(INFO, "[ANARI::STATUS] %s\n", message);
-        // }
+        if (severity == ANARI_SEVERITY_FATAL_ERROR)
+        {
+            debug5 << "[ANARI::FATAL] " << message << std::endl;
+        }
+        else if (severity == ANARI_SEVERITY_ERROR)
+        {
+            debug5 << "[ANARI::ERROR] " << message << ", DataType: " << (int)sourceType << std::endl;
+        }
+        else if (severity == ANARI_SEVERITY_WARNING)
+        {
+            debug5 << "[ANARI::WARN] " << message << ", DataType: " << (int)sourceType << std::endl;
+        }
+        else if (severity == ANARI_SEVERITY_PERFORMANCE_WARNING)
+        {
+            debug5 << "[ANARI::PERF] " << message << std::endl;
+        }
+        else if (severity == ANARI_SEVERITY_INFO)
+        {
+            debug5 << "[ANARI::INFO] " << message << std::endl;
+        }
+        else if (severity == ANARI_SEVERITY_DEBUG)
+        {
+            debug5 << "[ANARI::DEBUG] " << message << std::endl;
+        }
+        else
+        {
+            debug5 << "[ANARI::STATUS] " << message << std::endl;
+        }
+
+        (void)userData;
+        (void)device;
+        (void)source;
+        (void)code;
     }
 }
 

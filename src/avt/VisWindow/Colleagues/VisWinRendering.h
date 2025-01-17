@@ -494,7 +494,6 @@ class VISWINDOW_API VisWinRendering : public VisWinColleague
     stringVector                anariUSDParameters;
     bool                        usingUsdDevice;
     vtkAnariPass                *anariPass;
-    bool                        anariPassValid;
 #endif
 
     void                          (*renderInfo)(void *);

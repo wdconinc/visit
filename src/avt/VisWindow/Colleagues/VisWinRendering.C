@@ -54,7 +54,7 @@
 
 #ifdef VISIT_ANARI
     #include <vtkLogger.h>
-    #include <vtkAnariRendererNode.h>
+    #include <vtkAnariSceneGraph.h>
     #include <vtkAnariPass.h>
     #include <vtkAnariVisItViewNodeFactory.h>
     #include <vtkViewNodeFactory.h>
@@ -259,9 +259,9 @@ VisWinRendering::VisWinRendering(VisWindowColleagueProxy &p) :
 #endif
 
 #ifdef VISIT_ANARI
-    vtkLogger::SetStderrVerbosity(vtkLogger::Verbosity::VERBOSITY_WARNING);
+    vtkLogger::SetStderrVerbosity(vtkLogger::Verbosity::VERBOSITY_ERROR);
     anariRendering = false;
-    anariLibraryName = "";
+    anariLibraryName = "environment";
     anariLibrarySubtype = "default";
     anariRendererSubtype = "default";
     anariRendererParameters = stringVector();
@@ -269,7 +269,6 @@ VisWinRendering::VisWinRendering(VisWindowColleagueProxy &p) :
     usingUsdDevice = false;
 
     anariPass = CreateAnariPass();
-    anariPassValid = true;
 #endif
 }
 
@@ -1268,17 +1267,7 @@ VisWinRendering::RenderRenderWindow(void)
 #ifdef VISIT_ANARI
     if(GetAnariRendering())
     {
-        if(!anariPassValid)
-        {
-            if(anariPass != nullptr)
-            {
-                anariPass->Delete();
-            }
-
-            anariPass = CreateAnariPass();
-            canvas->SetPass(anariPass);
-            anariPassValid = true;
-        }
+        canvas->SetPass(anariPass);
     }
     else
     {
@@ -3197,9 +3186,9 @@ VisWinRendering::SetAnariLibraryName(const std::string name)
     if(anariLibraryName != name)
     {
         anariLibraryName = name;
-        vtkAnariRendererNode::SetLibraryName(name.c_str(), canvas);
+        auto* ad = anariPass->GetAnariDevice();
+        ad->SetupAnariDeviceFromLibrary(name.c_str(), anariLibrarySubtype.c_str());
         debug5 << "Back-end Name: " << name.c_str() << std::endl;
-        anariPassValid = false;
     }
 }
 
@@ -3223,9 +3212,9 @@ VisWinRendering::SetAnariLibrarySubtype(const std::string subtype)
     if(anariLibrarySubtype != subtype)
     {
         anariLibrarySubtype = subtype;
-        vtkAnariRendererNode::SetDeviceSubtype(subtype.c_str(), canvas);
+        auto* ad = anariPass->GetAnariDevice();
+        ad->SetupAnariDeviceFromLibrary(anariLibraryName.c_str(), subtype.c_str());
         debug5 << "Back-end subtype: " << subtype.c_str() << std::endl;
-        anariPassValid = false;
     }
 }
 
@@ -3249,7 +3238,9 @@ VisWinRendering::SetAnariRendererSubtype(const std::string subtype)
     if(anariRendererSubtype != subtype)
     {
         anariRendererSubtype = subtype;
-        vtkAnariRendererNode::SetRendererSubtype(subtype.c_str(), canvas);
+        auto* ar = anariPass->GetAnariRenderer();
+        ar->SetSubtype(subtype.c_str());
+        debug5 << "Renderer subtype: " << subtype.c_str() << std::endl;
     }
 }
 
@@ -3260,7 +3251,7 @@ VisWinRendering::SetAnariRendererSubtype(const std::string subtype)
 //   Sets the vector of param:value strings used to set ANARI renderer params.
 //
 // Arguments:
-//   params  The list of param:value strings
+//   rendererParams  The list of param:value strings
 //
 // Programmer:  Kevin Griffin
 // Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
@@ -3268,12 +3259,114 @@ VisWinRendering::SetAnariRendererSubtype(const std::string subtype)
 // ****************************************************************************
 
 void
-VisWinRendering::SetAnariRendererParameters(const stringVector &params)
+VisWinRendering::SetAnariRendererParameters(const stringVector &rendererParams)
 {
-    if(anariRendererParameters != params)
+    if(anariRendererParameters != rendererParams)
     {
-        anariRendererParameters = params;
-        vtkAnariRendererNode::SetAnariRendererParameters(params, canvas);
+        anariRendererParameters = rendererParams;
+        auto anariDevice = this->anariPass->GetAnariDevice()->GetHandle();
+        auto anariRenderer = this->anariPass->GetAnariRenderer()->GetHandle();
+        const ANARIParameter *parameterList =
+                static_cast<const ANARIParameter*>(anariGetObjectInfo(anariDevice,
+                                                                      ANARI_RENDERER,
+                                                                      anariRendererSubtype.c_str(),
+                                                                      "parameter",
+                                                                      ANARI_PARAMETER_LIST));
+
+        for (const auto& rendererParam : rendererParams)
+        {
+            std::string key = rendererParam.substr(0, rendererParam.find(";"));
+            std::string value = rendererParam.substr(rendererParam.find(";") + 1);
+            std::istringstream iss(value);
+            anari::DataType dataType = ANARI_UNKNOWN;
+
+            for (const ANARIParameter *param = parameterList; param && param->name != nullptr; ++param)
+            {
+                if (key == param->name)
+                {
+                    dataType = param->type;
+                }
+            }
+
+            switch (dataType)
+            {
+            case ANARI_BOOL: case ANARI_INT32: case ANARI_FLOAT32: case ANARI_FLOAT64:
+                if (dataType == ANARI_BOOL)
+                {
+                    int intVal;
+                    iss >> intVal;
+                    bool boolVal = (intVal == 1);
+                    anari::setParameter(anariDevice, anariRenderer, key.c_str(), boolVal);
+                }
+                else if (dataType == ANARI_INT32)
+                {
+                    int intVal;
+                    iss >> intVal;
+                    anari::setParameter(anariDevice, anariRenderer, key.c_str(), intVal);
+                }
+                else if (dataType == ANARI_FLOAT32)
+                {
+                    float floatVal;
+                    iss >> floatVal;
+                    anari::setParameter(anariDevice, anariRenderer, key.c_str(), floatVal);
+                }
+                else if (dataType == ANARI_FLOAT64)
+                {
+                    double doubleVal;
+                    iss >> doubleVal;
+                    anari::setParameter(anariDevice, anariRenderer, key.c_str(), doubleVal);
+                }
+                break;
+            case ANARI_INT32_VEC3: case ANARI_FLOAT32_VEC3: case ANARI_FLOAT64_VEC3:
+                if (dataType == ANARI_INT32_VEC3)
+                {
+                    int intVals[3];
+                    iss >> intVals[0] >> intVals[1] >> intVals[2];
+                    anari::setParameter(anariDevice, anariRenderer, key.c_str(), ANARI_INT32_VEC3, intVals);
+                }
+                else if (dataType == ANARI_FLOAT32_VEC3)
+                {
+                    float floatVals[3];
+                    iss >> floatVals[0] >> floatVals[1] >> floatVals[2];
+                    anari::setParameter(anariDevice, anariRenderer, key.c_str(), ANARI_FLOAT32_VEC3, floatVals);
+                }
+                else if (dataType == ANARI_FLOAT64_VEC3)
+                {
+                    double doubleVals[3];
+                    iss >> doubleVals[0] >> doubleVals[1] >> doubleVals[2];
+                    anari::setParameter(anariDevice, anariRenderer, key.c_str(), ANARI_FLOAT64_VEC3, doubleVals);
+                }
+                break;
+            case ANARI_INT32_VEC4: case ANARI_FLOAT32_VEC4: case ANARI_FLOAT64_VEC4:
+                if (dataType == ANARI_INT32_VEC4)
+                {
+                    int intVals[4];
+                    iss >> intVals[0] >> intVals[1] >> intVals[2] >> intVals[3];
+                    anari::setParameter(anariDevice, anariRenderer, key.c_str(), ANARI_INT32_VEC4, intVals);
+                }
+                else if (dataType == ANARI_FLOAT32_VEC4)
+                {
+                    float floatVals[4];
+                    iss >> floatVals[0] >> floatVals[1] >> floatVals[2] >> floatVals[3];
+                    anari::setParameter(anariDevice, anariRenderer, key.c_str(), ANARI_FLOAT32_VEC4, floatVals);
+                }
+                else if (dataType == ANARI_FLOAT64_VEC4)
+                {
+                    double doubleVals[4];
+                    iss >> doubleVals[0] >> doubleVals[1] >> doubleVals[2] >> doubleVals[3];
+                    anari::setParameter(anariDevice, anariRenderer, key.c_str(), ANARI_FLOAT64_VEC4, doubleVals);
+                }
+                break;
+            case ANARI_STRING:
+                anari::setParameter(anariDevice, anariRenderer, key.c_str(), value.c_str());
+                break;
+            default:
+                debug5 << "ANARI Datatype (" << dataType << ") Not Supported: " << key << " = " << value << std::endl;
+                break;
+            }
+        }
+
+        anari::commitParameters(anariDevice, anariRenderer);
     }
 }
 
@@ -3284,7 +3377,7 @@ VisWinRendering::SetAnariRendererParameters(const stringVector &params)
 //   Sets the vector of param:value strings used to set ANARI USD parameters
 //
 // Arguments:
-//   params  The list of param:value strings
+//   usdParams  The list of param:value strings
 //
 // Programmer:  Kevin Griffin
 // Creation:    Thu 26 Oct 2023 09:51:22 AM PDT
@@ -3292,12 +3385,76 @@ VisWinRendering::SetAnariRendererParameters(const stringVector &params)
 // ****************************************************************************
 
 void
-VisWinRendering::SetAnariUSDParameters(const stringVector &params)
+VisWinRendering::SetAnariUSDParameters(const stringVector &usdParams)
 {
-    if(anariUSDParameters != params)
+    if(anariUSDParameters != usdParams)
     {
-        anariUSDParameters = params;
-        vtkAnariRendererNode::SetAnariUSDParameters(params, canvas);
+        anariUSDParameters = usdParams;
+        auto anariDevice = this->anariPass->GetAnariDevice()->GetHandle();
+        auto anariRenderer = this->anariPass->GetAnariRenderer()->GetHandle();
+        const ANARIParameter *parameterList =
+                static_cast<const ANARIParameter*>(anariGetObjectInfo(anariDevice,
+                                                                      ANARI_DEVICE,
+                                                                      anariLibrarySubtype.c_str(),
+                                                                      "parameter",
+                                                                      ANARI_PARAMETER_LIST));
+
+        for (const auto& usdParam : usdParams)
+        {
+            std::string key = usdParam.substr(0, usdParam.find(";"));
+            std::string value = usdParam.substr(usdParam.find(";") + 1);
+            std::istringstream iss(value);
+            anari::DataType dataType = ANARI_UNKNOWN;
+
+            debug5 << "USD Device Parameter: " << key << " = " << value << std::endl;
+
+            for (const ANARIParameter *param = parameterList; param && param->name != nullptr; ++param)
+            {
+                if (key == param->name)
+                {
+                    dataType = param->type;
+                }
+            }
+
+            switch (dataType)
+            {
+            case ANARI_BOOL: case ANARI_INT32: case ANARI_FLOAT32: case ANARI_FLOAT64:
+                if (dataType == ANARI_BOOL)
+                {
+                    int intVal;
+                    iss >> intVal;
+                    bool boolVal = (intVal == 1);
+                    anari::setParameter(anariDevice, anariDevice, key.c_str(), boolVal);
+                }
+                else if (dataType == ANARI_INT32)
+                {
+                    int intVal;
+                    iss >> intVal;
+                    anari::setParameter(anariDevice, anariDevice, key.c_str(), intVal);
+                }
+                else if (dataType == ANARI_FLOAT32)
+                {
+                    float floatVal;
+                    iss >> floatVal;
+                    anari::setParameter(anariDevice, anariDevice, key.c_str(), floatVal);
+                }
+                else if (dataType == ANARI_FLOAT64)
+                {
+                    double doubleVal;
+                    iss >> doubleVal;
+                    anari::setParameter(anariDevice, anariDevice, key.c_str(), doubleVal);
+                }
+                break;
+            case ANARI_STRING:
+                anari::setParameter(anariDevice, anariDevice, key.c_str(), dataType, value.c_str());
+                break;
+            default:
+                debug5 << "ANARI Datatype (" << dataType << ") Not Supported: " << key << " = " << value << std::endl;
+                break;
+            }
+        }
+
+        anari::commitParameters(anariDevice, anariDevice);
     }
 }
 
@@ -3321,7 +3478,6 @@ VisWinRendering::SetAnariUSDParameters(const stringVector &params)
     if(val != usingUsdDevice)
     {
         usingUsdDevice = val;
-        vtkAnariRendererNode::SetUsingUsdDevice(val, canvas);
     }
  }
 
