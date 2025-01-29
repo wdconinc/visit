@@ -19,6 +19,9 @@ class vtkPiecewiseFunction;
 class vtkVolume;
 class vtkVolumeMapper;
 class vtkVolumeProperty;
+#ifdef VISIT_ANARI
+class vtkAnariPass;
+#endif
 
 class avtVisItVTKRenderer
 {
@@ -77,6 +80,12 @@ protected:
     vtkVolumeProperty         *m_volumeProperty{nullptr};
     vtkVolumeMapper           *m_volumeMapper  {nullptr};
     vtkVolume                 *m_volume        {nullptr};
+
+private:
+#ifdef VISIT_ANARI
+    void SetAnariRendererParameters(vtkAnariPass * const);
+    void SetAnariUSDParameters(vtkAnariPass * const);
+#endif
 };
 
 #endif

@@ -2250,12 +2250,6 @@ QvisVolumePlotWindow::UpdateWindow(bool doAll)
         case VolumeAttributes::ID_anariRendering:
             anariVolumePlotWidget->SetChecked(volumeAtts->GetAnariRendering());
             break;
-        case VolumeAttributes::ID_anariSPP:
-            anariVolumePlotWidget->UpdateSamplesPerPixel(volumeAtts->GetAnariSPP());
-            break;
-        case VolumeAttributes::ID_anariAO:
-            anariVolumePlotWidget->UpdateAOSamples(volumeAtts->GetAnariAO());
-            break;
         case VolumeAttributes::ID_anariLibrary:
             anariVolumePlotWidget->UpdateLibraryName(volumeAtts->GetAnariLibrary());
             break;
@@ -2265,41 +2259,11 @@ QvisVolumePlotWindow::UpdateWindow(bool doAll)
         case VolumeAttributes::ID_anariRendererSubtype:
             anariVolumePlotWidget->UpdateRendererSubtypes(volumeAtts->GetAnariRendererSubtype());
             break;
-        case VolumeAttributes::ID_anariLightFalloff:
-            anariVolumePlotWidget->UpdateLightFalloff(volumeAtts->GetAnariLightFalloff());
+        case VolumeAttributes::ID_anariRendererParameters:
+            anariVolumePlotWidget->UpdateRendererParameters(volumeAtts->GetAnariRendererParameters());
             break;
-        case VolumeAttributes::ID_anariAmbientIntensity:
-            anariVolumePlotWidget->UpdateAmbientIntensity(volumeAtts->GetAnariAmbientIntensity());
-            break;
-        case VolumeAttributes::ID_anariMaxDepth:
-            anariVolumePlotWidget->UpdateMaxDepth(volumeAtts->GetAnariMaxDepth());
-            break;
-        case VolumeAttributes::ID_anariRValue:
-            anariVolumePlotWidget->UpdateRValue(volumeAtts->GetAnariRValue());
-            break;
-        case VolumeAttributes::ID_usdDir:
-            anariVolumePlotWidget->UpdateUSDOutputLocation(volumeAtts->GetUsdDir());
-            break;
-        case VolumeAttributes::ID_usdAtCommit:
-            anariVolumePlotWidget->UpdateUSDParameter(USDParameter::COMMIT, volumeAtts->GetUsdAtCommit());
-            break;
-        case VolumeAttributes::ID_usdOutputBinary:
-            anariVolumePlotWidget->UpdateUSDParameter(USDParameter::BINARY, volumeAtts->GetUsdOutputBinary());
-            break;
-        case VolumeAttributes::ID_usdOutputMaterial:
-            anariVolumePlotWidget->UpdateUSDParameter(USDParameter::MATERIAL, volumeAtts->GetUsdOutputMaterial());
-            break;
-        case VolumeAttributes::ID_usdOutputPreviewSurface:
-            anariVolumePlotWidget->UpdateUSDParameter(USDParameter::PREVIEW, volumeAtts->GetUsdOutputPreviewSurface());
-            break;
-        case VolumeAttributes::ID_usdOutputMDL:
-            anariVolumePlotWidget->UpdateUSDParameter(USDParameter::MDL, volumeAtts->GetUsdOutputMDL());
-            break;
-        case VolumeAttributes::ID_usdOutputMDLColors:
-            anariVolumePlotWidget->UpdateUSDParameter(USDParameter::MDLCOLORS, volumeAtts->GetUsdOutputMDLColors());
-            break;
-        case VolumeAttributes::ID_usdOutputDisplayColors:
-            anariVolumePlotWidget->UpdateUSDParameter(USDParameter::DISPLAY, volumeAtts->GetUsdOutputDisplayColors());
+        case VolumeAttributes::ID_anariUSDParameters:
+            anariVolumePlotWidget->UpdateUSDParameters(volumeAtts->GetAnariUSDParameters());
             break;
 #endif
         }

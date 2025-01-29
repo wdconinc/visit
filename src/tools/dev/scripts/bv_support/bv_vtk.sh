@@ -2073,7 +2073,7 @@ function apply_vtk_patch
 
         apply_vtk9_vtkdatawriter_patch
         if [[ $? != 0 ]] ; then
-           return 1
+            return 1
         fi
 
         apply_vtk9_osmesa_render_patch
@@ -2084,7 +2084,7 @@ function apply_vtk_patch
     else
         apply_vtk8_vtkdatawriter_patch
         if [[ $? != 0 ]] ; then
-           return 1
+            return 1
         fi
 
         apply_vtk8_vtkopenglspheremapper_h_patch

@@ -654,7 +654,6 @@ AnariRenderingWidget::CreateDynamicWidget(anari::Device anariDevice, const char 
 
         if(resultIter == dynamicLayoutMap.end())
         {
-            std::cout << "Creating dynamic widget for " << key << std::endl;
             QWidget *dynamicWidget = new QWidget(this);
 
             QGridLayout *gridLayout = new QGridLayout(dynamicWidget);
@@ -716,7 +715,6 @@ AnariRenderingWidget::CreateDynamicWidget(anari::Device anariDevice, const char 
         }
         else
         {
-            std::cout << "Dynamic widget already exists for " << key << std::endl;
             stackLayoutIndex = resultIter->second;
         }
     }
@@ -1097,7 +1095,7 @@ void
 AnariRenderingWidget::libraryChanged()
 {
     renderingAttributes->SetUsingUsdDevice(false);
-    auto libname = libraryName->text().trimmed().toStdString(); // .c_str();
+    auto libname = libraryName->text().trimmed().toStdString();
     auto anariLibrary = anari::loadLibrary(libname.c_str(), anari_visit::StatusCallback);
 
     if(anariLibrary)
@@ -1175,7 +1173,7 @@ AnariRenderingWidget::libraryChanged()
 
         if(libraryName->text().trimmed() == "environment")
         {
-            message.append(tr("ANARI_LIBRARY not set."));
+            message.append(tr("ANARI_LIBRARY not set or set incorrectly."));
         }
         else
         {
@@ -1472,9 +1470,6 @@ AnariRenderingWidget::UpdateRenderingAttributes(const bool updateApply)
         {
             continue;
         }
-
-        // TODO: Remove this debug output
-        std::cout << "Renderer Parameter Name: " << name.c_str() << std::endl;
 
         if(qobject_cast<QSpinBox *>(child) != nullptr)
         {

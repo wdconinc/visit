@@ -3,6 +3,7 @@
 // details.  No copyright assignment is required to contribute to VisIt.
 
 #include <AnariVolumePlotWidget.h>
+#include <AnariParameterInfo.h>
 #include <QvisVolumePlotWindow.h>
 #include <VolumeAttributes.h>
 #include <DebugStream.h>
@@ -27,41 +28,48 @@
 
 #include <algorithm>
 
+const std::string AnariVolumePlotWidget::USD_WIDGET_KEY = "usd";
+const std::string AnariVolumePlotWidget::DEFAULT_WIDGET_KEY = "default";
+
 namespace anari_visit
 {
     void StatusCallback(const void* userData, anari::Device device,
                         anari::Object source, anari::DataType sourceType, anari::StatusSeverity severity,
                         anari::StatusCode code, const char* message)
     {
-        std::cerr << message << std::endl;
-        // if (severity == ANARI_SEVERITY_FATAL_ERROR)
-        // {
-        //     std::cout << "[ANARI::FATAL] " << message;
-        // }
-        // else if (severity == ANARI_SEVERITY_ERROR)
-        // {
-        //     std::cout << "[ANARI::ERROR] " << %s, DataType: %d\n", message, (int)sourceType);
-        // }
-        // else if (severity == ANARI_SEVERITY_WARNING)
-        // {
-        //     std::cout(WARNING, "[ANARI::WARN] %s, DataType: %d\n", message, (int)sourceType);
-        // }
-        // else if (severity == ANARI_SEVERITY_PERFORMANCE_WARNING)
-        // {
-        //     std::cout(WARNING, "[ANARI::PERF] %s\n", message);
-        // }
-        // else if (severity == ANARI_SEVERITY_INFO)
-        // {
-        //     std::cout(INFO, "[ANARI::INFO] %s\n", message);
-        // }
-        // else if (severity == ANARI_SEVERITY_DEBUG)
-        // {
-        //     std::cout(TRACE, "[ANARI::DEBUG] %s\n", message);
-        // }
-        // else
-        // {
-        //     std::cout(INFO, "[ANARI::STATUS] %s\n", message);
-        // }
+        if (severity == ANARI_SEVERITY_FATAL_ERROR)
+        {
+            debug5 << "[ANARI::FATAL] " << message << std::endl;
+        }
+        else if (severity == ANARI_SEVERITY_ERROR)
+        {
+            debug5 << "[ANARI::ERROR] " << message << ", DataType: " << (int)sourceType << std::endl;
+        }
+        else if (severity == ANARI_SEVERITY_WARNING)
+        {
+            debug5 << "[ANARI::WARN] " << message << ", DataType: " << (int)sourceType << std::endl;
+        }
+        else if (severity == ANARI_SEVERITY_PERFORMANCE_WARNING)
+        {
+            debug5 << "[ANARI::PERF] " << message << std::endl;
+        }
+        else if (severity == ANARI_SEVERITY_INFO)
+        {
+            debug5 << "[ANARI::INFO] " << message << std::endl;
+        }
+        else if (severity == ANARI_SEVERITY_DEBUG)
+        {
+            debug5 << "[ANARI::DEBUG] " << message << std::endl;
+        }
+        else
+        {
+            debug5 << "[ANARI::STATUS] " << message << std::endl;
+        }
+
+        (void)userData;
+        (void)device;
+        (void)source;
+        (void)code;
     }
 }
 
@@ -73,7 +81,7 @@ namespace anari_visit
 //
 // Arguments:
 //   qrw        Window that displays rendering settings
-//   ra         Contains ANARI rendering attributes
+//   va         Contains ANARI volume attributes
 //   parent     If parent is another widget, this widget becomes a
 //              child window inside parent. The new widget is deleted
 //                          when its parent is deleted.
@@ -86,24 +94,21 @@ namespace anari_visit
 // ****************************************************************************
 
 AnariVolumePlotWidget::AnariVolumePlotWidget(QvisVolumePlotWindow *qrw,
-                                             VolumeAttributes *ra,
-                                             QWidget *parent) :
-    QWidget(parent),
-    renderingWindow(qrw),
-    volumeAttributes(ra),
-    rendererParams(new std::vector<std::string>()),
-    totalRows(0),
-    renderingGroup(nullptr),
-    libraryName(nullptr),
-    librarySubtypes(nullptr),
-    rendererSubtypes(nullptr),
-    samplesPerPixel(nullptr),
-    aoSamples(nullptr),
-    lightFalloff(nullptr),
-    ambientIntensity(nullptr),
-    maxDepth(nullptr),
-    rValue(nullptr),
-    outputDir()
+                                             VolumeAttributes *va,
+                                             QWidget *parent)
+    : QWidget(parent)
+    , renderingWindow(qrw)
+    , volumeAttributes(va)
+    , dynamicLayouts(nullptr)
+    , dynamicLayoutMap()
+    , topRows(0)
+    , bottomRows(0)
+    , renderingGroup(nullptr)
+    , libraryName(nullptr)
+    , librarySubtypes(nullptr)
+    , rendererSubtypes(nullptr)
+    , currentDirectory()
+    , dirLineEdit(nullptr)
 {
     // row, col, rowspan, colspan
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
@@ -118,28 +123,26 @@ AnariVolumePlotWidget::AnariVolumePlotWidget(QvisVolumePlotWindow *qrw,
             this, &AnariVolumePlotWidget::renderingToggled);
 
     QVBoxLayout *renderingGroupVBoxLayout = new QVBoxLayout(renderingGroup);
-    int rowCnt =  totalRows;
 
-    renderingGroupVBoxLayout->addWidget(CreateGeneralWidget(rowCnt));
-    totalRows += rowCnt;
+    // General
+    renderingGroupVBoxLayout->addWidget(CreateGeneralWidget(topRows));
 
-    backendStackedLayout = new QStackedLayout();
+    // Widget Cache
+    dynamicLayouts = new QStackedLayout();
 
-    // Create and add the back-end specific widgets
-    int rowCnt1 = 0;
-    backendStackedLayout->addWidget(CreateBackendWidget(rowCnt1));
-    // renderingGroupVBoxLayout->addWidget(CreateBackendWidget(rowCnt));
+    // Placeholder Widget
+    int widgetIndex = dynamicLayouts->addWidget(new QWidget(this));
+    dynamicLayoutMap[AnariVolumePlotWidget::DEFAULT_WIDGET_KEY] = widgetIndex;
 
-    // Create USD back-end specific widgets
-    int rowCnt2 = 0;
-    backendStackedLayout->addWidget(CreateUSDWidget(rowCnt2));
+    // USD Widget
+    widgetIndex = dynamicLayouts->addWidget(CreateUSDWidget(bottomRows));
+    dynamicLayoutMap[AnariVolumePlotWidget::USD_WIDGET_KEY] = widgetIndex;
 
-    totalRows += std::max(rowCnt1, rowCnt2);
-    renderingGroupVBoxLayout->addLayout(backendStackedLayout);
+    renderingGroupVBoxLayout->addLayout(dynamicLayouts);
     mainLayout->addWidget(renderingGroup);
 
     connect(this, &AnariVolumePlotWidget::currentBackendChanged,
-            backendStackedLayout, &QStackedLayout::setCurrentIndex);
+            dynamicLayouts, &QStackedLayout::setCurrentIndex);
 }
 
 // ****************************************************************************
@@ -214,129 +217,6 @@ AnariVolumePlotWidget::CreateGeneralWidget(int &rows)
 }
 
 // ****************************************************************************
-// Method: AnariVolumePlotWidget::CreateBackendWidget
-//
-// Purpose:
-//   Creates the UI components for selecting rendering options used by ANARI
-//   back-ends (not including the USD back-end).
-//
-// Arguments:
-//   rows keeps track of the total rows used to create this widget
-//
-//
-// Programmer:  Kevin Griffin
-// Creation:    Fri Mar 11 12:27:45 PDT 2022
-//
-// Modifications:
-//
-// ****************************************************************************
-
-QWidget *
-AnariVolumePlotWidget::CreateBackendWidget(int &rows)
-{
-    QWidget *widget = new QWidget(this);
-
-    QGridLayout *gridLayout = new QGridLayout(widget);
-    gridLayout->setSpacing(10);
-    gridLayout->setContentsMargins(10,10,10,10);
-
-    // Row 1
-    // pixelSamples (ANARI_INT32) - all
-    samplesPerPixel = new QSpinBox();
-    samplesPerPixel->setMinimum(1);
-    samplesPerPixel->setValue(volumeAttributes->GetAnariSPP());
-
-    connect(samplesPerPixel, QOverload<int>::of(&QSpinBox::valueChanged),
-            this, &AnariVolumePlotWidget::samplesPerPixelChanged);
-
-    QLabel *anariSPPLabel = new QLabel("SPP");
-    anariSPPLabel->setToolTip(tr("Samples Per Pixel"));
-
-    gridLayout->addWidget(anariSPPLabel, rows, 0, 1, 1);
-    gridLayout->addWidget(samplesPerPixel, rows, 1, 1, 1);
-
-    // ambientSamples ANARI_INT32 - scivis, ao
-    aoSamples = new QSpinBox();
-    aoSamples->setMinimum(0);
-    aoSamples->setValue(volumeAttributes->GetAnariAO());
-
-    connect(aoSamples, QOverload<int>::of(&QSpinBox::valueChanged),
-            this, &AnariVolumePlotWidget::aoSamplesChanged);
-
-    QLabel *aoLabel = new QLabel(tr("AO Samples"));
-    aoLabel->setToolTip(tr("Ambient Occlusion Samples"));
-
-    gridLayout->addWidget(aoLabel, rows, 2, 1, 1);
-    gridLayout->addWidget(aoSamples, rows++, 3, 1, 1);
-
-    // Row 2
-    lightFalloff = new QLineEdit(QString::number(volumeAttributes->GetAnariLightFalloff()),
-                                 widget);
-    QDoubleValidator *dv0 = new QDoubleValidator();
-    dv0->setDecimals(4);
-    lightFalloff->setValidator(dv0);
-
-    connect(lightFalloff, &QLineEdit::editingFinished,
-            this, &AnariVolumePlotWidget::lightFalloffChanged);
-
-    QLabel *lfoLabel = new QLabel(tr("Falloff"));
-    lfoLabel->setToolTip(tr("Light Falloff"));
-
-    gridLayout->addWidget(lfoLabel, rows, 0, 1, 1);
-    gridLayout->addWidget(lightFalloff, rows, 1, 1, 1);
-
-    // ambientIntensity ANARI_FLOAT32 - scivis
-    ambientIntensity = new QLineEdit(QString::number( volumeAttributes->GetAnariAmbientIntensity()),
-                                       widget);
-    QDoubleValidator *dv1 = new QDoubleValidator(0.0, 1.0, 4);
-    ambientIntensity->setValidator(dv1);
-
-    connect(ambientIntensity, &QLineEdit::editingFinished,
-            this, &AnariVolumePlotWidget::ambientIntensityChanged);
-
-    QLabel *intensityLabel = new QLabel(tr("Ambient Intensity"));
-    intensityLabel->setToolTip(tr("0.0 <= Ambient Light Intensity <= 1.0"));
-
-    gridLayout->addWidget(intensityLabel, rows, 2, 1, 1);
-    gridLayout->addWidget(ambientIntensity, rows++, 3, 1, 1);
-
-    // Row 3
-    // maxDepth ANRI_INT32 - dpt
-    maxDepth = new QSpinBox();
-    maxDepth->setMinimum(0);
-    maxDepth->setValue(volumeAttributes->GetAnariMaxDepth());
-
-    connect(maxDepth, QOverload<int>::of(&QSpinBox::valueChanged),
-            this, &AnariVolumePlotWidget::maxDepthChanged);
-
-    QLabel *maxDepthLabel = new QLabel(tr("Max Depth"));
-    maxDepthLabel->setToolTip(tr("Max depth for tracing rays"));
-
-    gridLayout->addWidget(maxDepthLabel, rows, 0, 1, 1);
-    gridLayout->addWidget(maxDepth, rows, 1, 1, 1);
-
-    // R  ANARI_FLOAT32 - dpt
-    rValue = new QLineEdit(QString::number(volumeAttributes->GetAnariRValue()),
-                            widget);
-    QDoubleValidator *dv2 = new QDoubleValidator(0.0, 1.0, 4);
-    rValue->setValidator(dv2);
-
-    connect(rValue, &QLineEdit::editingFinished,
-            this, &AnariVolumePlotWidget::rValueChanged);
-
-    QLabel *rLabel = new QLabel(tr("R"));
-    rLabel->setToolTip(tr("0.0 <= R <= 1.0"));
-
-    gridLayout->addWidget(rLabel, rows, 2, 1, 1);
-    gridLayout->setAlignment(rLabel, Qt::AlignRight);
-
-    gridLayout->addWidget(rValue, rows++, 3, 1, 1);
-
-    UpdateUI();
-    return widget;
-}
-
-// ****************************************************************************
 // Method: AnariVolumePlotWidget::CreateUSDWidget
 //
 // Purpose:
@@ -356,35 +236,36 @@ AnariVolumePlotWidget::CreateBackendWidget(int &rows)
 QWidget *
 AnariVolumePlotWidget::CreateUSDWidget(int &rows)
 {
-    QWidget *widget = new QWidget(this);
-    QVBoxLayout *mainLayout = new QVBoxLayout(widget);
+    auto widget = new QWidget(this);
+    auto mainLayout = new QVBoxLayout(widget);
 
-    QGridLayout *gridLayout = new QGridLayout();
+    auto gridLayout = new QGridLayout();
     gridLayout->setSpacing(10);
     gridLayout->setContentsMargins(10,10,10,10);
 
     gridLayout->setColumnStretch(1, 3);
 
     // row, col, rowspan, colspan
+    // Output location for the USD files
     // Row 1
-    QLabel *locationLabel = new QLabel("Directory");
+    auto locationLabel = new QLabel("Directory");
     locationLabel->setToolTip(tr("Output location for saving the USD files"));
 
-    // Output location for the USD files
-    // outputDir.reset(new QString(QDir::homePath()));
-    outputDir.reset(new QString(volumeAttributes->GetUsdDir().c_str()));
-    dirLineEdit = new QLineEdit(*outputDir);
-    connect(dirLineEdit, &QLineEdit::editingFinished, this, &AnariVolumePlotWidget::outputLocationChanged);
-    // outputLocationChanged();
+    currentDirectory = QString(QDir::homePath());
+    dirLineEdit = new QLineEdit(currentDirectory);
+    dirLineEdit->setObjectName("usd::serialize.location");
 
-    QPushButton *dirSelectButton = new QPushButton("Select");
+    connect(dirLineEdit, &QLineEdit::editingFinished, this, &AnariVolumePlotWidget::lineEditingFinished);
+
+    auto dirSelectButton = new QPushButton("Select");
     connect(dirSelectButton, &QPushButton::pressed, this, &AnariVolumePlotWidget::selectButtonPressed);
 
-    commitCheckBox = new QCheckBox(tr("commit"));
+    auto commitCheckBox = new QCheckBox(tr("commit"));
+    commitCheckBox->setObjectName("usd::writeatcommit");
     commitCheckBox->setToolTip(tr("Write USD at ANARI commit call"));
-    commitCheckBox->setChecked(volumeAttributes->GetUsdAtCommit());
+    commitCheckBox->setChecked(true);
 
-    connect(commitCheckBox, &QCheckBox::toggled, this, &AnariVolumePlotWidget::commitToggled);
+    connect(commitCheckBox, &QCheckBox::toggled, this, &AnariVolumePlotWidget::checkBoxToggled);
 
     gridLayout->addWidget(locationLabel, 0, 0, 1, 1);
     gridLayout->addWidget(dirLineEdit, 0, 1, 1, 2);
@@ -395,61 +276,450 @@ AnariVolumePlotWidget::CreateUSDWidget(int &rows)
 
     // Row 2
     rows++;
-    QGroupBox *outputGroup = new QGroupBox(tr("Output"));
+    auto outputGroup = new QGroupBox(tr("Output"));
 
-    QGridLayout *gridLayout2 = new QGridLayout(outputGroup);
+    auto gridLayout2 = new QGridLayout(outputGroup);
     gridLayout2->setSpacing(10);
     gridLayout2->setContentsMargins(10,10,10,10);
 
-    binaryCheckBox = new QCheckBox(tr("Binary"));
+    auto binaryCheckBox = new QCheckBox(tr("Binary"));
+    binaryCheckBox->setObjectName("usd::serialize.outputbinary");
     binaryCheckBox->setToolTip(tr("Binary or text output"));
-    binaryCheckBox->setChecked(volumeAttributes->GetUsdOutputBinary());
+    binaryCheckBox->setChecked(true);
 
-    connect(binaryCheckBox, &QCheckBox::toggled, this, &AnariVolumePlotWidget::binaryToggled);
+    connect(binaryCheckBox, &QCheckBox::toggled, this, &AnariVolumePlotWidget::checkBoxToggled);
     gridLayout2->addWidget(binaryCheckBox, 0, 0, 1, 1);
 
-    materialCheckBox = new QCheckBox(tr("Material"));
+    auto materialCheckBox = new QCheckBox(tr("Material"));
+    materialCheckBox->setObjectName("usd::output.material");
     materialCheckBox->setToolTip(tr("Include material objects in the output"));
-    materialCheckBox->setChecked(volumeAttributes->GetUsdOutputMaterial());
+    materialCheckBox->setChecked(true);
 
-    connect(materialCheckBox, &QCheckBox::toggled, this, &AnariVolumePlotWidget::materialToggled);
+    connect(materialCheckBox, &QCheckBox::toggled, this, &AnariVolumePlotWidget::checkBoxToggled);
     gridLayout2->addWidget(materialCheckBox, 0, 1, 1, 1);
 
-    previewCheckBox = new QCheckBox(tr("Preview Surface"));
+    auto previewCheckBox = new QCheckBox(tr("Preview Surface"));
+    previewCheckBox->setObjectName("usd::output.previewsurfaceshader");
     previewCheckBox->setToolTip(tr("Include preview surface shader prims in the output for material objects"));
-    previewCheckBox->setChecked(volumeAttributes->GetUsdOutputPreviewSurface());
+    previewCheckBox->setChecked(false);
 
-    connect(previewCheckBox, &QCheckBox::toggled, this, &AnariVolumePlotWidget::previewSurfaceToggled);
+    connect(previewCheckBox, &QCheckBox::toggled, this, &AnariVolumePlotWidget::checkBoxToggled);
     gridLayout2->addWidget(previewCheckBox, 0, 2, 1, 1);
 
     // Row 3
     rows++;
 
-    mdlCheckBox = new QCheckBox(tr("MDL"));
+    auto mdlCheckBox = new QCheckBox(tr("MDL"));
+    mdlCheckBox->setObjectName("usd::output.mdlshader");
     mdlCheckBox->setToolTip(tr("Include MDL shader prims in the output for material objects"));
-    mdlCheckBox->setChecked(volumeAttributes->GetUsdOutputMDL());
+    mdlCheckBox->setChecked(true);
 
-    connect(mdlCheckBox, &QCheckBox::toggled, this, &AnariVolumePlotWidget::mdlToggled);
+    connect(mdlCheckBox, &QCheckBox::toggled, this, &AnariVolumePlotWidget::checkBoxToggled);
     gridLayout2->addWidget(mdlCheckBox, 1, 0, 1, 1);
 
-    mdlColorCheckBox = new QCheckBox(tr("MDL Colors"));
+    auto mdlColorCheckBox = new QCheckBox(tr("MDL Colors"));
+    mdlColorCheckBox->setObjectName("usd::output.mdlcolors");
     mdlColorCheckBox->setToolTip(tr("Include MDL colors in the output for material objects"));
-    mdlColorCheckBox->setChecked(volumeAttributes->GetUsdOutputMDLColors());
+    mdlColorCheckBox->setChecked(true);
 
-    connect(mdlColorCheckBox, &QCheckBox::toggled, this, &AnariVolumePlotWidget::mdlColorsToggled);
+    connect(mdlColorCheckBox, &QCheckBox::toggled, this, &AnariVolumePlotWidget::checkBoxToggled);
     gridLayout2->addWidget(mdlColorCheckBox, 1, 1, 1, 1);
 
-    displayColorCheckBox = new QCheckBox(tr("Display Colors"));
+    auto displayColorCheckBox = new QCheckBox(tr("Display Colors"));
+    displayColorCheckBox->setObjectName("usd::output.displaycolors");
     displayColorCheckBox->setToolTip(tr("Include display colors in the output"));
-    displayColorCheckBox->setChecked(volumeAttributes->GetUsdOutputDisplayColors());
+    displayColorCheckBox->setChecked(false);
 
-    connect(displayColorCheckBox, &QCheckBox::toggled, this, &AnariVolumePlotWidget::displayColorsToggled);
+    connect(displayColorCheckBox, &QCheckBox::toggled, this, &AnariVolumePlotWidget::checkBoxToggled);
     gridLayout2->addWidget(displayColorCheckBox, 1, 2, 1, 1);
 
     rows++;
     mainLayout->addWidget(outputGroup);
 
     return widget;
+}
+
+// ****************************************************************************
+// Method: AnariVolumePlotWidget::MakeWidgetFromParameterInfo
+//
+// Purpose:
+//   Creates the individual UI element from the parameter information obtained
+//   from ANARI's object introspection.
+//
+// Arguments:
+//   paramInfo  Contains information (description, min, max, default value, etc.)
+//              about the parameter.
+//
+// Programmer:  Kevin Griffin
+// Creation:    Fri Mar 11 12:27:45 PDT 2022
+//
+// Modifications:
+//
+// ****************************************************************************
+
+QWidget *
+AnariVolumePlotWidget::MakeWidgetFromParameterInfo(const AnariParameterInfo &paramInfo)
+{
+    if(paramInfo.GetName() == "name" || paramInfo.GetName() == "background")
+    {
+        // Skip these parameters
+        // name is used internally for USD and background is handled by VisIt
+        return nullptr;
+    }
+
+    auto anariDataType = paramInfo.GetType();
+
+    switch(anariDataType)
+    {
+        case ANARI_INT32:
+        {
+            QSpinBox *spinBox = new QSpinBox();
+            spinBox->setObjectName(paramInfo.GetName().c_str());
+
+            if(paramInfo.m_defaultValue)
+            {
+                auto intPtr = static_cast<const int *>(paramInfo.m_defaultValue);
+                spinBox->setValue(*intPtr);
+            }
+
+            int min = std::numeric_limits<int>::min();
+            int max = std::numeric_limits<int>::max();
+
+            if(paramInfo.HasMinimum())
+            {
+                auto minPtr = static_cast<const int *>(paramInfo.m_minimum);
+                min = *minPtr;
+            }
+
+            if(paramInfo.HasMaximum())
+            {
+                auto maxPtr = static_cast<const int *>(paramInfo.m_maximum);
+                max = *maxPtr;
+            }
+
+            spinBox->setMinimum(min);
+            spinBox->setMaximum(max);
+
+            connect(spinBox, QOverload<int>::of(&QSpinBox::valueChanged),
+                    this, &AnariVolumePlotWidget::spinBoxValueChanged);
+
+            return spinBox;
+        }
+        case ANARI_FLOAT32:
+        {
+            QLineEdit *lineEdit = new QLineEdit();
+            lineEdit->setObjectName(paramInfo.GetName().c_str());
+
+            float min = std::numeric_limits<float>::min();
+            float max = std::numeric_limits<float>::max();
+
+            if(paramInfo.m_defaultValue)
+            {
+                auto floatPtr = static_cast<const float *>(paramInfo.m_defaultValue);
+                lineEdit->setText(QString::number(*floatPtr));
+            }
+
+            if(paramInfo.HasMinimum())
+            {
+                auto minPtr = static_cast<const float *>(paramInfo.m_minimum);
+                min = *minPtr;
+            }
+
+            if(paramInfo.HasMaximum())
+            {
+                auto maxPtr = static_cast<const float *>(paramInfo.m_maximum);
+                max = *maxPtr;
+            }
+
+            QDoubleValidator *dv = new QDoubleValidator(min, max, 4);
+            lineEdit->setValidator(dv);
+
+            connect(lineEdit, &QLineEdit::editingFinished,
+                    this, &AnariVolumePlotWidget::lineEditingFinished);
+
+            return lineEdit;
+        }
+        case ANARI_FLOAT64:
+        {
+            QLineEdit *lineEdit = new QLineEdit();
+            lineEdit->setObjectName(paramInfo.GetName().c_str());
+
+            double min = std::numeric_limits<double>::min();
+            double max = std::numeric_limits<double>::max();
+
+            if(paramInfo.m_defaultValue)
+            {
+                auto doublePtr = static_cast<const double *>(paramInfo.m_defaultValue);
+                lineEdit->setText(QString::number(*doublePtr));
+            }
+
+            if(paramInfo.HasMinimum())
+            {
+                auto minPtr = static_cast<const double *>(paramInfo.m_minimum);
+                min = *minPtr;
+            }
+
+            if(paramInfo.HasMaximum())
+            {
+                auto maxPtr = static_cast<const double *>(paramInfo.m_maximum);
+                max = *maxPtr;
+            }
+
+            QDoubleValidator *dv = new QDoubleValidator(min, max, 4);
+            lineEdit->setValidator(dv);
+
+            connect(lineEdit, &QLineEdit::editingFinished,
+                    this, &AnariVolumePlotWidget::lineEditingFinished);
+
+            return lineEdit;
+        }
+        case ANARI_STRING:
+        {
+            auto acceptedVals = paramInfo.GetAcceptedValues();
+
+            if(!acceptedVals.empty())
+            {
+                QComboBox *comboBox = new QComboBox();
+                comboBox->setObjectName(paramInfo.GetName().c_str());
+
+                for(const std::string &value : acceptedVals)
+                {
+                    comboBox->addItem(value.c_str());
+                }
+
+                connect(comboBox, QOverload<const QString &>::of(&QComboBox::currentTextChanged),
+                        this, &AnariVolumePlotWidget::comboBoxTextChanged);
+
+                return comboBox;
+            }
+
+            QLineEdit *lineEdit = new QLineEdit();
+            lineEdit->setObjectName(paramInfo.GetName().c_str());
+
+            if(paramInfo.m_defaultValue)
+            {
+                lineEdit->setText(static_cast<const char *>(paramInfo.m_defaultValue));
+            }
+
+            connect(lineEdit, &QLineEdit::editingFinished,
+                    this, &AnariVolumePlotWidget::lineEditingFinished);
+
+            return lineEdit;
+        }
+        case ANARI_BOOL:
+        {
+            QCheckBox *checkBox = new QCheckBox(paramInfo.GetName().c_str());
+            checkBox->setObjectName(paramInfo.GetName().c_str());
+
+            auto toolTip = paramInfo.GetDescription();
+
+            if(!toolTip.empty())
+            {
+                checkBox->setToolTip(tr(toolTip.c_str()));
+            }
+
+            if(paramInfo.m_defaultValue)
+            {
+                auto boolPtr = static_cast<const int32_t *>(paramInfo.m_defaultValue);
+                checkBox->setChecked(boolPtr && *boolPtr);
+            }
+
+            connect(checkBox, &QCheckBox::toggled,
+                    this, &AnariVolumePlotWidget::checkBoxToggled);
+
+            return checkBox;
+        }
+        case ANARI_INT32_VEC3: case ANARI_FLOAT32_VEC3: case ANARI_FLOAT64_VEC3:
+        {
+            QLineEdit *lineEdit = new QLineEdit();
+            lineEdit->setObjectName(paramInfo.GetName().c_str());
+
+            if(paramInfo.m_defaultValue)
+            {
+                auto vecPtr = paramInfo.m_defaultValue;
+
+                if(anariDataType == ANARI_INT32_VEC3)
+                {
+                    auto intVecPtr = static_cast<const int *>(vecPtr);
+                    lineEdit->setText(QString::number(intVecPtr[0]) + " " +
+                                      QString::number(intVecPtr[1]) + " " +
+                                      QString::number(intVecPtr[2]));
+                }
+                else if(anariDataType == ANARI_FLOAT32_VEC3)
+                {
+                    auto floatVecPtr = static_cast<const float *>(vecPtr);
+                    lineEdit->setText(QString::number(floatVecPtr[0]) + " " +
+                                      QString::number(floatVecPtr[1]) + " " +
+                                      QString::number(floatVecPtr[2]));
+                }
+                else if(anariDataType == ANARI_FLOAT64_VEC3)
+                {
+                    auto doubleVecPtr = static_cast<const double *>(vecPtr);
+                    lineEdit->setText(QString::number(doubleVecPtr[0]) + " " +
+                                      QString::number(doubleVecPtr[1]) + " " +
+                                      QString::number(doubleVecPtr[2]));
+                }
+            }
+
+            connect(lineEdit, &QLineEdit::editingFinished,
+                    this, &AnariVolumePlotWidget::lineEditingFinished);
+
+            return lineEdit;
+        }
+        case ANARI_INT32_VEC4: case ANARI_FLOAT32_VEC4: case ANARI_FLOAT64_VEC4:
+        {
+            QLineEdit *lineEdit = new QLineEdit();
+            lineEdit->setObjectName(paramInfo.GetName().c_str());
+
+            if(paramInfo.m_defaultValue)
+            {
+                auto vecPtr = paramInfo.m_defaultValue;
+
+                if(anariDataType == ANARI_INT32_VEC4)
+                {
+                    auto intVecPtr = static_cast<const int *>(vecPtr);
+                    lineEdit->setText(QString::number(intVecPtr[0]) + " " +
+                                      QString::number(intVecPtr[1]) + " " +
+                                      QString::number(intVecPtr[2]) + " " +
+                                      QString::number(intVecPtr[3]));
+                }
+                else if(anariDataType == ANARI_FLOAT32_VEC4)
+                {
+                    auto floatVecPtr = static_cast<const float *>(vecPtr);
+                    lineEdit->setText(QString::number(floatVecPtr[0]) + " " +
+                                      QString::number(floatVecPtr[1]) + " " +
+                                      QString::number(floatVecPtr[2]) + " " +
+                                      QString::number(floatVecPtr[3]));
+                }
+                else if(anariDataType == ANARI_FLOAT64_VEC4)
+                {
+                    auto doubleVecPtr = static_cast<const double *>(vecPtr);
+                    lineEdit->setText(QString::number(doubleVecPtr[0]) + " " +
+                                      QString::number(doubleVecPtr[1]) + " " +
+                                      QString::number(doubleVecPtr[2]) + " " +
+                                      QString::number(doubleVecPtr[3]));
+                }
+            }
+
+            connect(lineEdit, &QLineEdit::editingFinished,
+                    this, &AnariVolumePlotWidget::lineEditingFinished);
+
+            return lineEdit;
+        }
+        default:
+        {
+            QLineEdit *lineEdit = new QLineEdit();
+            lineEdit->setObjectName(paramInfo.GetName().c_str());
+
+            connect(lineEdit, &QLineEdit::editingFinished,
+                    this, &AnariVolumePlotWidget::lineEditingFinished);
+
+            return lineEdit;
+        }
+    }
+}
+
+// ****************************************************************************
+// Method: AnariVolumePlotWidget::CreateDynamicWidget
+//
+// Purpose:
+//   Creates the panel for the dynamic parameters of the selected back-end,
+//   back-end subtype, and renderer subtype.
+//
+// Arguments:
+//   anariDevice  The ANARI device
+//   subtype      The renderer subtype
+//   key          The key to the dynamic layout map
+//   isUSD        If the back-end is USD
+//
+// Programmer:  Kevin Griffin
+// Creation:    Fri Mar 11 12:27:45 PDT 2022
+//
+// Modifications:
+//
+// ****************************************************************************
+
+void
+AnariVolumePlotWidget::CreateDynamicWidget(anari::Device anariDevice, const char *subtype, const std::string &key, bool isUSD)
+{
+    int stackLayoutIndex = this->dynamicLayoutMap[AnariVolumePlotWidget::DEFAULT_WIDGET_KEY];
+
+    if(isUSD)
+    {
+        stackLayoutIndex = this->dynamicLayoutMap[AnariVolumePlotWidget::USD_WIDGET_KEY];
+    }
+    else
+    {
+        auto resultIter = dynamicLayoutMap.find(key);
+
+        if(resultIter == dynamicLayoutMap.end())
+        {
+            QWidget *dynamicWidget = new QWidget(this);
+
+            QGridLayout *gridLayout = new QGridLayout(dynamicWidget);
+            gridLayout->setSpacing(10);
+            gridLayout->setContentsMargins(10,10,10,10);
+
+            int rows = 0;
+            int cols = 0;
+
+            const ANARIParameter *parameterList =
+                static_cast<const ANARIParameter*>(anariGetObjectInfo(anariDevice,
+                                                                      ANARI_RENDERER,
+                                                                      subtype,
+                                                                      "parameter",
+                                                                      ANARI_PARAMETER_LIST));
+
+            for(const ANARIParameter *param = parameterList; param && param->name != nullptr; ++param)
+            {
+                AnariParameterInfo paramInfo = std::move(GetParameterInfo(anariDevice, ANARI_RENDERER, subtype, param));
+
+                // Create the UI
+                QWidget *uiWidget = MakeWidgetFromParameterInfo(paramInfo);
+
+                if(uiWidget == nullptr)
+                {
+                    continue;
+                }
+
+                if(paramInfo.GetType() != ANARI_BOOL)
+                {
+                    QLabel *label = new QLabel(param->name);
+                    std::string toolTip = paramInfo.GetDescription();
+
+                    if(!toolTip.empty())
+                    {
+                        label->setToolTip(tr(toolTip.c_str()));
+                    }
+
+                    gridLayout->addWidget(label, rows, cols++, 1, 1);
+                    gridLayout->addWidget(uiWidget, rows, cols++, 1, 1);
+                }
+                else
+                {
+                    gridLayout->addWidget(uiWidget, rows, cols, 1, 2);
+                    cols += 2;
+                }
+
+                // Update rows and columns
+                cols %= 4;
+
+                if (cols == 0)
+                {
+                    ++rows;
+                }
+            }
+
+            stackLayoutIndex = dynamicLayouts->addWidget(dynamicWidget);
+            dynamicLayoutMap[key] = stackLayoutIndex;
+        }
+        else
+        {
+            stackLayoutIndex = resultIter->second;
+        }
+    }
+
+    emit currentBackendChanged(stackLayoutIndex);
 }
 
 // ****************************************************************************
@@ -501,71 +771,16 @@ AnariVolumePlotWidget::GetBackendType(const std::string &libname) const
 }
 
 // ****************************************************************************
-// Method: AnariVolumePlotWidget::UpdateUI
+// Method: AnariVolumePlotWidget::GetParameterInfo
 //
 // Purpose:
-//   Update the state of the UI components
-//
-// Programmer: Kevin Griffin
-// Creation:
-//
-// Modifications:
-//
-// ****************************************************************************
-
-void
-AnariVolumePlotWidget::UpdateUI()
-{
-    auto start = rendererParams->begin();
-    auto stop = rendererParams->end();
-    auto result = std::find(start, stop, "pixelSamples");
-
-    if(samplesPerPixel != nullptr)
-    {
-        samplesPerPixel->setEnabled(result != stop);
-    }
-
-    if( aoSamples != nullptr)
-    {
-        result = std::find(start, stop, "aoSamples");
-        auto result2 = std::find(start, stop, "ambientSamples");
-        aoSamples->setEnabled((result != stop) || (result2 != stop));
-    }
-
-    if( lightFalloff != nullptr)
-    {
-        result = std::find(start, stop, "lightFalloff");
-        lightFalloff->setEnabled(result != stop);
-    }
-
-    if( ambientIntensity != nullptr)
-    {
-        result = std::find(start, stop, "ambientRadiance");
-        ambientIntensity->setEnabled(result != stop);
-    }
-
-    if( maxDepth != nullptr)
-    {
-        result = std::find(start, stop, "maxDepth");
-        maxDepth->setEnabled(result != stop);
-    }
-
-    if( rValue != nullptr)
-    {
-        result = std::find(start, stop, "R");
-        rValue->setEnabled(result != stop);
-    }
-}
-
-// ****************************************************************************
-// Method: AnariVolumePlotWidget::UpdateRendererParams
-//
-// Purpose:
-//   Update the list of supported parameters for a specific renderer subtype.
+//   Gets the parameter information for the given object.
 //
 // Arguments:
-//   rendererSubtype the renderer subtype (e.g., scivis)
-//   library the ANARI library (e.g., visrtx)
+//   device         The ANARI device
+//   objectType     The type of object (Renderer, Camera, etc.)
+//   objectSubtype  The subtype of the object
+//   param          The parameter to get information for
 //
 //
 // Programmer: Kevin Griffin
@@ -575,53 +790,59 @@ AnariVolumePlotWidget::UpdateUI()
 //
 // ****************************************************************************
 
-void
-AnariVolumePlotWidget::UpdateRendererParams(const std::string &rendererSubtype, anari::Device anariDevice)
+AnariParameterInfo
+AnariVolumePlotWidget::GetParameterInfo(anari::Device device,
+                                        ANARIDataType objectType,
+                                        const char *objectSubtype,
+                                        const ANARIParameter *param)
 {
-    bool unloadLibrary = false;
-    anari::Library anariLibrary = nullptr;
+    AnariParameterInfo paramInfo;
 
-    if(anariDevice == nullptr)
-    {
-        auto libname =  libraryName->text().trimmed().toStdString().c_str();
-        anariLibrary = anari::loadLibrary(libname, anari_visit::StatusCallback);
-        unloadLibrary = true;
+    paramInfo.SetName(param->name);
+    paramInfo.SetType(param->type);
 
-        auto libSubtype =  librarySubtypes->currentText().toStdString();
-        anariDevice = anari::newDevice(anariLibrary, libSubtype.c_str());
-    }
+    // Explanation of the parameter, e.g., for a tooltip
+    paramInfo.SetDescription(anariGetParameterInfo(device,
+                                                   objectType,
+                                                   objectSubtype,
+                                                   param->name,
+                                                   param->type,
+                                                   "description",
+                                                   ANARI_STRING));
+    // set values will be clamped to this minimum
+    paramInfo.m_minimum = anariGetParameterInfo(device,
+                                                objectType,
+                                                objectSubtype,
+                                                param->name,
+                                                param->type,
+                                                "minimum",
+                                                param->type);
+    // set values will be clamped to this maximum
+    paramInfo.m_maximum = anariGetParameterInfo(device,
+                                                objectType,
+                                                objectSubtype,
+                                                param->name,
+                                                param->type,
+                                                "maximum",
+                                                param->type);
+    // default value, must be in minumum and maximum if present
+    paramInfo.m_defaultValue = anariGetParameterInfo(device,
+                                                     objectType,
+                                                     objectSubtype,
+                                                     param->name,
+                                                     param->type,
+                                                     "default",
+                                                     param->type);
+    // list of accepted values
+    paramInfo.SetAcceptedValues((const char **)anariGetParameterInfo(device,
+                                                                     objectType,
+                                                                     objectSubtype,
+                                                                     param->name,
+                                                                     param->type,
+                                                                     "value",
+                                                                     ANARI_STRING_LIST));
 
-    if(anariDevice)
-    {
-        const anari::Parameter *params =
-            static_cast<const anari::Parameter *>(anariGetObjectInfo(anariDevice,
-                                                                     ANARI_RENDERER,
-                                                                     rendererSubtype.c_str(),
-                                                                     "parameter",
-                                                                     ANARI_PARAMETER_LIST));
-        // Clear old renderer parameters
-        rendererParams.reset(new std::vector<std::string>());
-
-        // Add new renderer parameters
-        if(params)
-        {
-            for(auto p = params; p->name != NULL; p++)
-            {
-                std::string param(p->name);
-                rendererParams->emplace_back(param);
-            }
-        }
-
-        if(unloadLibrary)
-        {
-            anari::release(anariDevice, anariDevice);
-            anariUnloadLibrary(anariLibrary);
-        }
-    }
-    else
-    {
-        debug1 << "Could not create an ANARI device to update the renderer parameters list." << std::endl;
-    }
+    return paramInfo;
 }
 
 // External Updates
@@ -681,7 +902,7 @@ void
 AnariVolumePlotWidget::UpdateLibraryName(const std::string libname)
 {
     libraryName->blockSignals(true);
-    libraryName->setText(QString::fromStdString(libname).trimmed());
+    libraryName->setText(QString::fromStdString(libname));
     libraryName->blockSignals(false);
 }
 
@@ -718,6 +939,97 @@ AnariVolumePlotWidget::UpdateRendererSubtypes(const std::string subtype)
 }
 
 // ****************************************************************************
+// Method: AnariVolumePlotWidget::UpdateRendererParameters
+//
+// Purpose:
+//   Updates the renderer UI elements.
+//
+// Arguments:
+//   params the list of parameters to update
+//
+// Programmer: Kevin Griffin
+// Creation:
+//
+// Modifications:
+//
+// ****************************************************************************
+
+void
+AnariVolumePlotWidget::UpdateRendererParameters(const stringVector &params)
+{
+    auto widget = dynamicLayouts->currentWidget();
+    auto children = widget->findChildren<QWidget *>();
+
+    for (const auto& param : params)
+    {
+        std::string key = param.substr(0, param.find(";"));
+        std::string value = param.substr(param.find(";") + 1);
+
+        for(auto child : children)
+        {
+            std::string name = child->objectName().toStdString();
+
+            if(name.empty())
+            {
+                continue;
+            }
+
+            if(name == key)
+            {
+                if(qobject_cast<QSpinBox *>(child) != nullptr)
+                {
+                    auto spinBox = qobject_cast<QSpinBox *>(child);
+                    spinBox->blockSignals(true);
+
+                    try
+                    {
+                        auto val = std::stoi(value);
+                        spinBox->setValue(val);
+                    }
+                    catch(...)
+                    {
+                        debug5 << "[ANARI] UpdateRendererParameters - Could not convert value to int: " << value;
+                    }
+
+                    spinBox->blockSignals(false);
+                }
+                else if(qobject_cast<QLineEdit *>(child) != nullptr)
+                {
+                    auto lineEdit = qobject_cast<QLineEdit *>(child);
+                    lineEdit->blockSignals(true);
+                    lineEdit->setText(QString::fromStdString(value));
+                    lineEdit->blockSignals(false);
+                }
+                else if(qobject_cast<QCheckBox *>(child) != nullptr)
+                {
+                    auto checkBox = qobject_cast<QCheckBox *>(child);
+                    checkBox->blockSignals(true);
+                    checkBox->setChecked(value == "1");
+                    checkBox->blockSignals(false);
+                }
+                else if(qobject_cast<QComboBox *>(child) != nullptr)
+                {
+                    auto comboBox = qobject_cast<QComboBox *>(child);
+                    comboBox->blockSignals(true);
+                    comboBox->setCurrentText(QString::fromStdString(value));
+                    comboBox->blockSignals(false);
+                }
+
+                break;
+            }
+        }
+    }
+}
+
+void
+AnariVolumePlotWidget::UpdateUSDParameters(const stringVector &params)
+{
+    // TODO: Implement
+    // 1. Get the current dynamic widget
+    // 2. Update each widget matching name with the new value
+}
+
+// ****************************************************************************
 // Method: AnariVolumePlotWidget::SetChecked
 //
 // Purpose:
@@ -739,255 +1051,6 @@ AnariVolumePlotWidget::SetChecked(const bool val)
 {
     renderingGroup->setChecked(val);
 }
-
-// ****************************************************************************
-// Method: AnariVolumePlotWidget::UpdateSamplesPerPixel
-//
-// Purpose:
-//   Updates the samples per pixel that will be used by the currently selected
-//   renderer.
-//
-// Arguments:
-//   val the new samples per pixel value
-//
-// Programmer: Kevin Griffin
-// Creation:
-//
-// Modifications:
-//
-// ****************************************************************************
-
-void
-AnariVolumePlotWidget::UpdateSamplesPerPixel(const int val)
-{
-    samplesPerPixel->blockSignals(true);
-    samplesPerPixel->setValue(val);
-    samplesPerPixel->blockSignals(false);
-}
-
-// ****************************************************************************
-// Method: AnariVolumePlotWidget::UpdateAOSamples
-//
-// Purpose:
-//   Updates the ambient occulsion value that will be used by the currently
-//   selected renderer.
-//
-// Arguments:
-//   val the new ambient occlusion value
-//
-// Programmer: Kevin Griffin
-// Creation:
-//
-// Modifications:
-//
-// ****************************************************************************
-
-void
-AnariVolumePlotWidget::UpdateAOSamples(const int val)
-{
-    aoSamples->blockSignals(true);
-    aoSamples->setValue(val);
-    aoSamples->blockSignals(false);
-}
-
-// ****************************************************************************
-// Method: AnariVolumePlotWidget::UpdateLightFalloff
-//
-// Purpose:
-//   Update the light falloff value that will be used by the currently
-//   selected renderer.
-//
-// Arguments:
-//   val the new light falloff value
-//
-// Programmer: Kevin Griffin
-// Creation:
-//
-// Modifications:
-//
-// ****************************************************************************
-
-void
-AnariVolumePlotWidget::UpdateLightFalloff(const float val)
-{
-    lightFalloff->blockSignals(true);
-    lightFalloff->setText(QString::number(val));
-    lightFalloff->blockSignals(false);
-}
-
-// ****************************************************************************
-// Method: AnariVolumePlotWidget::UpdateAmbientIntensity
-//
-// Purpose:
-//   Update the ambient intensity value that will be used by the currently
-//   selected renderer.
-//
-// Arguments:
-//   val the new ambient intensity value
-//
-// Programmer: Kevin Griffin
-// Creation:
-//
-// Modifications:
-//
-// ****************************************************************************
-
-void
-AnariVolumePlotWidget::UpdateAmbientIntensity(const float val)
-{
-    ambientIntensity->blockSignals(true);
-    ambientIntensity->setText(QString::number(val));
-    ambientIntensity->blockSignals(false);
-}
-
-// ****************************************************************************
-// Method: AnariVolumePlotWidget::UpdateMaxDepth
-//
-// Purpose:
-//   Updates the max depth value that will be used by the currently
-//   selected renderer.
-//
-// Arguments:
-//   val the new max depth value
-//
-// Programmer: Kevin Griffin
-// Creation:
-//
-// Modifications:
-//
-// ****************************************************************************
-
-void
-AnariVolumePlotWidget::UpdateMaxDepth(const int val)
-{
-    maxDepth->blockSignals(true);
-    maxDepth->setValue(val);
-    maxDepth->blockSignals(false);
-}
-
-// ****************************************************************************
-// Method: AnariVolumePlotWidget::UpdateRValue
-//
-// Purpose:
-//   Update the R value that will be used by the currently selected renderer.
-//
-// Arguments:
-//   val the new R value
-//
-// Programmer: Kevin Griffin
-// Creation:
-//
-// Modifications:
-//
-// ****************************************************************************
-
-void
-AnariVolumePlotWidget::UpdateRValue(const float val)
-{
-    rValue->blockSignals(true);
-    rValue->setText(QString::number(val));
-    rValue->blockSignals(false);
-}
-
-// ****************************************************************************
-// Method: AnariVolumePlotWidget::UpdateUSDOutputLocation
-//
-// Purpose:
-//   Updates the USD output location path.
-//
-// Arguments:
-//   path output location for saving the USD files
-//
-//
-// Programmer: Kevin Griffin
-// Creation:
-//
-// Modifications:
-//
-// ****************************************************************************
-
-void
-AnariVolumePlotWidget::UpdateUSDOutputLocation(const std::string path)
-{
-    QString directoryQStr = QString::fromStdString(path);
-
-    if(!directoryQStr.isEmpty())
-    {
-        QDir directory(directoryQStr);
-
-        if(directory.exists())
-        {
-            dirLineEdit->blockSignals(true);
-            dirLineEdit->setText(directoryQStr);
-            dirLineEdit->blockSignals(false);
-        }
-        else
-        {
-            debug5 << "AnariVolumePlotWidget::UpdateUSDOutputLocation: " << path << " does not exist" << std::endl;
-        }
-    }
-}
-
-// ****************************************************************************
-// Method: AnariVolumePlotWidget::UpdateUSDParameter
-//
-// Purpose:
-//   Sets the checked state of the USD Ooutput parameter check boxes.
-//
-// Arguments:
-//   param  the USD output parameter to update
-//   bool   if true then param is selected
-//
-// Programmer: Kevin Griffin
-// Creation:
-//
-// Modifications:
-//
-// ****************************************************************************
-
-void
-AnariVolumePlotWidget::UpdateUSDParameter(const USDParameter param, const bool val)
-{
-    switch(param)
-    {
-        case USDParameter::COMMIT:
-            commitCheckBox->blockSignals(true);
-            commitCheckBox->setChecked(val);
-            commitCheckBox->blockSignals(false);
-            break;
-        case USDParameter::BINARY:
-            binaryCheckBox->blockSignals(true);
-            binaryCheckBox->setChecked(val);
-            binaryCheckBox->blockSignals(false);
-            break;
-        case USDParameter::MATERIAL:
-            materialCheckBox->blockSignals(true);
-            materialCheckBox->setChecked(val);
-            materialCheckBox->blockSignals(false);
-            break;
-        case USDParameter::PREVIEW:
-            previewCheckBox->blockSignals(true);
-            previewCheckBox->setChecked(val);
-            previewCheckBox->blockSignals(false);
-            break;
-        case USDParameter::MDL:
-            mdlCheckBox->blockSignals(true);
-            mdlCheckBox->setChecked(val);
-            mdlCheckBox->blockSignals(false);
-            break;
-        case USDParameter::MDLCOLORS:
-            mdlColorCheckBox->blockSignals(true);
-            mdlColorCheckBox->setChecked(val);
-            mdlColorCheckBox->blockSignals(false);
-            break;
-        case USDParameter::DISPLAY:
-            displayColorCheckBox->blockSignals(true);
-            displayColorCheckBox->setChecked(val);
-            displayColorCheckBox->blockSignals(false);
-            break;
-    }
-}
-
 
 // SLOTS
 //----------------------------------------------------------------------------
@@ -1031,12 +1094,23 @@ AnariVolumePlotWidget::renderingToggled(bool val)
 void
 AnariVolumePlotWidget::libraryChanged()
 {
-    auto libname = libraryName->text().trimmed().toStdString().c_str();
-    auto anariLibrary = anari::loadLibrary(libname, anari_visit::StatusCallback);
+    volumeAttributes->SetUsingUsdDevice(false);
+    auto libname = libraryName->text().trimmed().toStdString();
+    auto anariLibrary = anari::loadLibrary(libname.c_str(), anari_visit::StatusCallback);
 
     if(anariLibrary)
     {
         volumeAttributes->SetAnariLibrary(libname);
+        auto backendType = GetBackendType(libraryName->text().trimmed().toStdString());
+
+        if(backendType == BackendType::USD)
+        {
+            volumeAttributes->SetUsingUsdDevice(true);
+        }
+        else
+        {
+            volumeAttributes->SetUsingUsdDevice(false);
+        }
 
         // Update back-end subtypes
         librarySubtypes->blockSignals(true);
@@ -1059,11 +1133,12 @@ AnariVolumePlotWidget::libraryChanged()
         auto libSubtype =  librarySubtypes->currentText().toStdString();
         volumeAttributes->SetAnariLibrarySubtype(libSubtype);
 
+        auto anariDevice = anari::newDevice(anariLibrary, libSubtype.c_str());
+
         // Update renderers
         rendererSubtypes->blockSignals(true);
         rendererSubtypes->clear();
 
-        auto anariDevice = anari::newDevice(anariLibrary, libSubtype.c_str());
         const char **renderers = anariGetObjectSubtypes(anariDevice, ANARI_RENDERER);
 
         if(renderers)
@@ -1079,27 +1154,18 @@ AnariVolumePlotWidget::libraryChanged()
         }
 
         auto rendererSubtype = rendererSubtypes->currentText().toStdString();
-        UpdateRendererParams(rendererSubtype, anariDevice);
-
         volumeAttributes->SetAnariRendererSubtype(rendererSubtype);
         rendererSubtypes->blockSignals(false);
 
+        // Create Dynamic Widget
+        std::string key = libname + ":" + libSubtype + ":" + rendererSubtype;
+        CreateDynamicWidget(anariDevice, rendererSubtype.c_str(), key, backendType == BackendType::USD);
+
+        // Clean-up
         anari::release(anariDevice, anariDevice);
         anariUnloadLibrary(anariLibrary);
 
-        auto backendType = GetBackendType(libraryName->text().trimmed().toStdString());
-
-        if(backendType == BackendType::USD)
-        {
-            emit currentBackendChanged(1);
-        }
-        else
-        {
-            emit currentBackendChanged(0);
-            UpdateUI();
-        }
-
-        renderingWindow->SetApply();
+        UpdateRenderingAttributes(false);
     }
     else
     {
@@ -1107,11 +1173,11 @@ AnariVolumePlotWidget::libraryChanged()
 
         if(libraryName->text().trimmed() == "environment")
         {
-            message.append(tr("ANARI_LIBRARY not set."));
+            message.append(tr("ANARI_LIBRARY not set or set incorrectly."));
         }
         else
         {
-            message.append(tr("%1 is not a valid back-end name or not on your library path.").arg(libname));
+            message.append(tr("%1 is not a valid back-end name or not on your library path.").arg(libname.c_str()));
         }
 
         QMessageBox::critical(this, tr("ANARI"), message);
@@ -1132,10 +1198,9 @@ AnariVolumePlotWidget::libraryChanged()
         auto rendererSubtype = rendererSubtypes->currentText().toStdString();
         volumeAttributes->SetAnariRendererSubtype(rendererSubtype);
 
-        // Clear/Disable all options
-        rendererParams.reset(new std::vector<std::string>());
-        UpdateUI();
+        // Reset to blank widget
         emit currentBackendChanged(0);
+        ClearAnariParameterAttributes();
         renderingWindow->SetApply();
     }
 }
@@ -1160,10 +1225,10 @@ void
 AnariVolumePlotWidget::librarySubtypeChanged(const QString &subtype)
 {
     auto libSubtype = subtype.toStdString();
+    volumeAttributes->SetAnariLibrarySubtype(libSubtype);
+    auto libname = libraryName->text().trimmed().toStdString();
 
-    auto libname = libraryName->text().trimmed().toStdString().c_str();
-    auto anariLibrary = anari::loadLibrary(libname, anari_visit::StatusCallback);
-
+    auto anariLibrary = anari::loadLibrary(libname.c_str(), anari_visit::StatusCallback);
     auto anariDevice = anari::newDevice(anariLibrary, libSubtype.c_str());
 
     if(anariDevice)
@@ -1186,23 +1251,25 @@ AnariVolumePlotWidget::librarySubtypeChanged(const QString &subtype)
         }
 
         auto rendererSubtype =  rendererSubtypes->currentText().toStdString();
-        UpdateRendererParams(rendererSubtype, anariDevice);
-
         volumeAttributes->SetAnariRendererSubtype(rendererSubtype);
         rendererSubtypes->blockSignals(false);
+
+        // Create Dynamic Widget
+        std::string key = libname + ":" + libSubtype + ":" + rendererSubtype;
+        CreateDynamicWidget(anariDevice, rendererSubtype.c_str(), key, GetBackendType(libname) == BackendType::USD);
 
         // Clean-up
         anari::release(anariDevice, anariDevice);
         anariUnloadLibrary(anariLibrary);
 
-        UpdateUI();
-
-        volumeAttributes->SetAnariLibrarySubtype(libSubtype);
-        renderingWindow->SetApply();
+        UpdateRenderingAttributes(false);
     }
     else
     {
         debug1 << "Could not create the ANARI back-end device (" << libname << ") to update the Rendering UI." << std::endl;
+        emit currentBackendChanged(0);
+        ClearAnariParameterAttributes();
+        renderingWindow->SetApply();
     }
 }
 
@@ -1226,204 +1293,34 @@ void
 AnariVolumePlotWidget::rendererSubtypeChanged(const QString &subtype)
 {
     auto rendererSubtype = subtype.toStdString();
-
-    UpdateRendererParams(rendererSubtype);
-    UpdateUI();
-
     volumeAttributes->SetAnariRendererSubtype(rendererSubtype);
-    renderingWindow->SetApply();
-}
 
-// ****************************************************************************
-// Method: AnariVolumePlotWidget::anariSPPChanged
-//
-// Purpose:
-//      Triggered when ANARI samples per pixel has changed.
-//
-// Arguments:
-//      val     new samples per pixel value
-//
-// Programmer:  Kevin Griffin
-// Creation:    Fri Mar 11 12:27:45 PDT 2022
-//
-// Modifications:
-//
-// ****************************************************************************
+    auto libname = libraryName->text().trimmed().toStdString();
+    auto libSubtype = librarySubtypes->currentText().toStdString();
 
-void
-AnariVolumePlotWidget::samplesPerPixelChanged(int val)
-{
-    volumeAttributes->SetAnariSPP(val);
-    renderingWindow->SetApply();
-}
+    auto anariLibrary = anari::loadLibrary(libname.c_str(), anari_visit::StatusCallback);
+    auto anariDevice = anari::newDevice(anariLibrary, libSubtype.c_str());
 
-// ****************************************************************************
-// Method: AnariVolumePlotWidget::aoSamplesChanged
-//
-// Purpose:
-//      Triggered when ANARI ambient occlusion samples has changed.
-//
-// Arguments:
-//      val     new ANARI ambient occlusion sample count
-//
-// Programmer:  Kevin Griffin
-// Creation:    Fri Mar 11 12:27:45 PDT 2022
-//
-// Modifications:
-//
-// ****************************************************************************
-
-void
-AnariVolumePlotWidget::aoSamplesChanged(int val)
-{
-    volumeAttributes->SetAnariAO(val);
-    renderingWindow->SetApply();
-}
-
-// ****************************************************************************
-// Method: AnariVolumePlotWidget::lightFalloffChanged
-//
-// Purpose:
-//      Triggered when the light falloff value changes
-//
-// Programmer:  Kevin Griffin
-// Creation:    Fri Mar 11 12:27:45 PDT 2022
-//
-// Modifications:
-//
-// ****************************************************************************
-
-void
-AnariVolumePlotWidget::lightFalloffChanged()
-{
-    bool ok;
-    QString text =  lightFalloff->text();
-    float val = text.toFloat(&ok);
-
-    if(ok)
+    if(anariDevice)
     {
-        volumeAttributes->SetAnariLightFalloff(val);
-        renderingWindow->SetApply();
+        // Create Dynamic Widget
+        auto key = libname + ":" + libSubtype + ":" + rendererSubtype;
+        CreateDynamicWidget(anariDevice, rendererSubtype.c_str(), key, GetBackendType(libname) == BackendType::USD);
+
+        // Clean-up
+        anari::release(anariDevice, anariDevice);
+        anariUnloadLibrary(anariLibrary);
+
+        UpdateRenderingAttributes(false);
     }
     else
     {
-        debug5 << "Failed to convert Light Falloff input text (" << text.toStdString() << ") to a float" << std::endl;
-    }
-}
+        debug1 << "Could not create the ANARI back-end device (" << libname << ") to update the Rendering UI." << std::endl;
+        emit currentBackendChanged(0);
 
-// ****************************************************************************
-// Method: AnariVolumePlotWidget::ambientIntensityChanged
-//
-// Purpose:
-//      Triggered when the ambient intensity value changes
-//
-// Programmer:  Kevin Griffin
-// Creation:    Fri Mar 11 12:27:45 PDT 2022
-//
-// Modifications:
-//
-// ****************************************************************************
-
-void
-AnariVolumePlotWidget::ambientIntensityChanged()
-{
-    bool ok;
-    QString text =  ambientIntensity->text();
-    float val = text.toFloat(&ok);
-
-    if(ok)
-    {
-        volumeAttributes->SetAnariAmbientIntensity(val);
+        // Clear Parameters
+        ClearAnariParameterAttributes();
         renderingWindow->SetApply();
-    }
-    else
-    {
-        debug5 << "Failed to convert Ambient Intensity input text (" << text.toStdString() << ") to a float" << std::endl;
-    }
-}
-
-// ****************************************************************************
-// Method: AnariVolumePlotWidget::maxDepthChanged
-//
-// Purpose:
-//      Triggered when max depth has changed.
-//
-// Arguments:
-//      val     new max depth value
-//
-// Programmer:  Kevin Griffin
-// Creation:    Fri Mar 11 12:27:45 PDT 2022
-//
-// Modifications:
-//
-// ****************************************************************************
-
-void
-AnariVolumePlotWidget::maxDepthChanged(int val)
-{
-    volumeAttributes->SetAnariMaxDepth(val);
-    renderingWindow->SetApply();
-}
-
-// ****************************************************************************
-// Method: AnariVolumePlotWidget::rValueChanged
-//
-// Purpose:
-//      Triggered when the R value changes
-//
-// Programmer:  Kevin Griffin
-// Creation:    Fri Mar 11 12:27:45 PDT 2022
-//
-// Modifications:
-//
-// ****************************************************************************
-
-void
-AnariVolumePlotWidget::rValueChanged()
-{
-    bool ok;
-    QString text =  rValue->text();
-    float val = text.toFloat(&ok);
-
-    if(ok)
-    {
-        volumeAttributes->SetAnariRValue(val);
-        renderingWindow->SetApply();
-    }
-    else
-    {
-        debug5 << "Failed to convert R value input text (" << text.toStdString() << ") to a float" << std::endl;
-    }
-}
-
-// ****************************************************************************
-// Method: AnariVolumePlotWidget::outputLocationChanged
-//
-// Purpose:
-//      Triggered when the USD output directory changes
-//
-// Programmer:  Kevin Griffin
-// Creation:    Fri Mar 11 12:27:45 PDT 2022
-//
-// Modifications:
-//
-// ****************************************************************************
-
-void
-AnariVolumePlotWidget::outputLocationChanged()
-{
-    QDir directory(dirLineEdit->text());
-    *outputDir = directory.absolutePath();
-
-    if(directory.exists())
-    {
-        volumeAttributes->SetUsdDir(outputDir->toStdString());
-        renderingWindow->SetApply();
-    }
-    else
-    {
-        QString message = tr("%1 doesn't exist").arg(*outputDir);
-        QMessageBox::critical(this, tr("USD Output Directory"), message);
     }
 }
 
@@ -1445,25 +1342,26 @@ AnariVolumePlotWidget::selectButtonPressed()
 {
     auto dir = QFileDialog::getExistingDirectory(this,
                                                  tr("Open Directory"),
-                                                 *outputDir,
+                                                 this->currentDirectory,
                                                  QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
     if(!dir.isEmpty())
     {
-        dirLineEdit->setText(dir);
-        outputLocationChanged();
+        QDir directory(dir);
+        this->currentDirectory = directory.absolutePath();
+        this->dirLineEdit->setText(dir);
     }
 }
 
 // ****************************************************************************
-// Method: AnariVolumePlotWidget::commitToggled
+// Method: AnariVolumePlotWidget::spinBoxValueChanged
 //
 // Purpose:
-//      Triggered when USD commit is toggled.
+//      Triggered when a spin box value has changed. Mainly user for the
+//      dynamic UI components.
 //
 // Arguments:
-//      val when true writing to USD will happen immediately at the anariCommit
-//          call, otherwise it will happen at anariRenderFrame.
+//      value   The new value of the spin box
 //
 // Programmer:  Kevin Griffin
 // Creation:    Fri Mar 11 12:27:45 PDT 2022
@@ -1472,21 +1370,17 @@ AnariVolumePlotWidget::selectButtonPressed()
 //
 // ****************************************************************************
 
-void
-AnariVolumePlotWidget::commitToggled(bool val)
+void AnariVolumePlotWidget::spinBoxValueChanged(int value)
 {
-    volumeAttributes->SetUsdAtCommit(val);
-    renderingWindow->SetApply();
+    UpdateRenderingAttributes(false);
 }
 
 // ****************************************************************************
-// Method: AnariVolumePlotWidget::binaryToggled
+// Method: AnariVolumePlotWidget::lineEditingFinished
 //
 // Purpose:
-//      Triggered when output type is toggled (binary or text).
-//
-// Arguments:
-//      val if true USD output is binary, otherwise text
+//      Triggered when a line edit value has changed. Mainly used for the
+//      dynamic UI components.
 //
 // Programmer:  Kevin Griffin
 // Creation:    Fri Mar 11 12:27:45 PDT 2022
@@ -1496,21 +1390,19 @@ AnariVolumePlotWidget::commitToggled(bool val)
 // ****************************************************************************
 
 void
-AnariVolumePlotWidget::binaryToggled(bool val)
+AnariVolumePlotWidget::lineEditingFinished()
 {
-    volumeAttributes->SetUsdOutputBinary(val);
-    renderingWindow->SetApply();
+    UpdateRenderingAttributes(false);
 }
 
 // ****************************************************************************
-// Method: AnariVolumePlotWidget::materialToggled
+// Method: AnariVolumePlotWidget::comboBoxTextChanged
 //
 // Purpose:
-//      Triggered when material checkbox is toggled to determine if material
-//      objects are included in the USD output.
+//      Triggered when a combo box value has changed.
 //
 // Arguments:
-//      val if true material objects are included in the USD output
+//      text    The new value of the combo box
 //
 // Programmer:  Kevin Griffin
 // Creation:    Fri Mar 11 12:27:45 PDT 2022
@@ -1520,47 +1412,41 @@ AnariVolumePlotWidget::binaryToggled(bool val)
 // ****************************************************************************
 
 void
-AnariVolumePlotWidget::materialToggled(bool val)
+AnariVolumePlotWidget::comboBoxTextChanged(const QString &text)
 {
-    volumeAttributes->SetUsdOutputMaterial(val);
-    renderingWindow->SetApply();
+    UpdateRenderingAttributes(false);
 }
 
 // ****************************************************************************
-// Method: AnariVolumePlotWidget::previewSurfaceToggled
+// Method: AnariVolumePlotWidget::checkBoxToggled
 //
 // Purpose:
-//      Triggered when preview surface checkbox is toggled to determine if
-//      preview surface shader prims are included in the output for material
-//      objects.
+//      Triggered when a check box is selected or deselected.
 //
 // Arguments:
-//      val if true preview surface shader prims are included in output for
-//          material objects
+//      checked     If true, the check box is selected
 //
-// Programmer:  Kevin Griffin
-// Creation:    Fri Mar 11 12:27:45 PDT 2022
+// Programmer:      Kevin Griffin
+// Creation:        Fri Mar 11 12:27:45 PDT 2022
 //
 // Modifications:
 //
 // ****************************************************************************
 
 void
-AnariVolumePlotWidget::previewSurfaceToggled(bool val)
+AnariVolumePlotWidget::checkBoxToggled(bool checked)
 {
-    volumeAttributes->SetUsdOutputPreviewSurface(val);
-    renderingWindow->SetApply();
+    UpdateRenderingAttributes(false);
 }
 
 // ****************************************************************************
-// Method: AnariVolumePlotWidget::mdlToggled
+// Method: AnariVolumePlotWidget::UpdateRenderingAttributes
 //
 // Purpose:
-//      Triggered when the mdl checkbox is toggled to determine if mdl shader
-//      prims are included in the output for material objects.
+//      Updates the rendering attributes with the current values from the UI.
 //
 // Arguments:
-//      val if true mdl shader prims are included in output for material objects
+//      updateApply If true, the rendering window will be updated
 //
 // Programmer:  Kevin Griffin
 // Creation:    Fri Mar 11 12:27:45 PDT 2022
@@ -1570,21 +1456,72 @@ AnariVolumePlotWidget::previewSurfaceToggled(bool val)
 // ****************************************************************************
 
 void
-AnariVolumePlotWidget::mdlToggled(bool val)
+AnariVolumePlotWidget::UpdateRenderingAttributes(const bool updateApply)
 {
-    volumeAttributes->SetUsdOutputMDL(val);
-    renderingWindow->SetApply();
+    auto widget = dynamicLayouts->currentWidget();
+    auto children = widget->findChildren<QWidget *>(Qt::FindDirectChildrenOnly);
+    stringVector params;
+
+    for(auto child : children)
+    {
+        std::string name = child->objectName().toStdString();
+
+        if(name.empty())
+        {
+            continue;
+        }
+
+        if(qobject_cast<QSpinBox *>(child) != nullptr)
+        {
+            auto spinBox = qobject_cast<QSpinBox *>(child);
+            auto val = spinBox->value();
+            std::string valStr = name + ";" + std::to_string(val);
+            params.push_back(valStr);
+        }
+        else if(qobject_cast<QLineEdit *>(child) != nullptr)
+        {
+            auto lineEdit = qobject_cast<QLineEdit *>(child);
+            auto val = lineEdit->text().toStdString();
+            std::string valStr = name + ";" + val;
+            params.push_back(valStr);
+        }
+        else if(qobject_cast<QCheckBox *>(child) != nullptr)
+        {
+            auto checkBox = qobject_cast<QCheckBox *>(child);
+            auto val = checkBox->isChecked() ? "1" : "0";
+            std::string valStr = name + ";" + val;
+            params.push_back(valStr);
+        }
+        else if(qobject_cast<QComboBox *>(child) != nullptr)
+        {
+            auto comboBox = qobject_cast<QComboBox *>(child);
+            auto val = comboBox->currentText().toStdString();
+            std::string valStr = name + ";" + val;
+            params.push_back(valStr);
+        }
+        else
+        {
+            std::cerr << "Unknown widget type: " << child->metaObject()->className() << std::endl;
+        }
+    }
+
+    if(!this->volumeAttributes->GetUsingUsdDevice())
+    {
+        volumeAttributes->SetAnariRendererParameters(params);
+    }
+    else
+    {
+        volumeAttributes->SetAnariUSDParameters(params);
+    }
+
+    renderingWindow->SetApply(updateApply);
 }
 
 // ****************************************************************************
-// Method: AnariVolumePlotWidget::mdlColorsToggled
+// Method: AnariVolumePlotWidget::ClearAnariParameterAttributes
 //
 // Purpose:
-//      Triggered when the mdl colors checkbox is toggled to determine if mdl
-//      colors are included in the output for material objects.
-//
-// Arguments:
-//      val if true mdl colors are included in output for material objects
+//      Clears the ANARI Renderer and USD parameters.
 //
 // Programmer:  Kevin Griffin
 // Creation:    Fri Mar 11 12:27:45 PDT 2022
@@ -1593,33 +1530,9 @@ AnariVolumePlotWidget::mdlToggled(bool val)
 //
 // ****************************************************************************
 
-void
-AnariVolumePlotWidget::mdlColorsToggled(bool val)
+void AnariVolumePlotWidget::ClearAnariParameterAttributes()
 {
-    volumeAttributes->SetUsdOutputMDLColors(val);
-    renderingWindow->SetApply();
-}
-
-// ****************************************************************************
-// Method: AnariVolumePlotWidget::displayColorsToggled
-//
-// Purpose:
-//      Triggered when the display colors checkbox is toggled to determine if
-//      display colors are included in the output.
-//
-// Arguments:
-//      val if true include display colors in the output
-//
-// Programmer:  Kevin Griffin
-// Creation:    Fri Mar 11 12:27:45 PDT 2022
-//
-// Modifications:
-//
-// ****************************************************************************
-
-void
-AnariVolumePlotWidget::displayColorsToggled(bool val)
-{
-    volumeAttributes->SetUsdOutputDisplayColors(val);
-    renderingWindow->SetApply();
+    stringVector params;
+    volumeAttributes->SetAnariRendererParameters(params);
+    volumeAttributes->SetAnariUSDParameters(params);
 }

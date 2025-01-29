@@ -9,6 +9,7 @@ import llnl.visit.CommunicationBuffer;
 import llnl.visit.Plugin;
 import llnl.visit.ColorControlPointList;
 import llnl.visit.GaussianControlPointList;
+import java.util.Vector;
 
 // ****************************************************************************
 // Class: VolumeAttributes
@@ -27,7 +28,7 @@ import llnl.visit.GaussianControlPointList;
 
 public class VolumeAttributes extends AttributeSubject implements Plugin
 {
-    private static int VolumeAttributes_numAdditionalAtts = 63;
+    private static int VolumeAttributes_numAdditionalAtts = 52;
 
     // Enum values
     public final static int RENDERER_SERIAL = 0;
@@ -133,23 +134,12 @@ public class VolumeAttributes extends AttributeSubject implements Plugin
         materialProperties[2] = 0;
         materialProperties[3] = 15;
         anariRendering = false;
-        anariSPP = 1;
-        anariAO = 0;
-        anariLibrary = new String("environment");
+        anariLibrary = new String("");
         anariLibrarySubtype = new String("default");
         anariRendererSubtype = new String("default");
-        anariLightFalloff = 1f;
-        anariAmbientIntensity = 1f;
-        anariMaxDepth = 0;
-        anariRValue = 1f;
-        usdDir = new String("");
-        usdAtCommit = false;
-        usdOutputBinary = true;
-        usdOutputMaterial = true;
-        usdOutputPreviewSurface = true;
-        usdOutputMDL = true;
-        usdOutputMDLColors = true;
-        usdOutputDisplayColors = true;
+        usingUsdDevice = false;
+        anariRendererParameters = new Vector();
+        anariUSDParameters = new Vector();
     }
 
     public VolumeAttributes(int nMoreFields)
@@ -208,23 +198,12 @@ public class VolumeAttributes extends AttributeSubject implements Plugin
         materialProperties[2] = 0;
         materialProperties[3] = 15;
         anariRendering = false;
-        anariSPP = 1;
-        anariAO = 0;
-        anariLibrary = new String("environment");
+        anariLibrary = new String("");
         anariLibrarySubtype = new String("default");
         anariRendererSubtype = new String("default");
-        anariLightFalloff = 1f;
-        anariAmbientIntensity = 1f;
-        anariMaxDepth = 0;
-        anariRValue = 1f;
-        usdDir = new String("");
-        usdAtCommit = false;
-        usdOutputBinary = true;
-        usdOutputMaterial = true;
-        usdOutputPreviewSurface = true;
-        usdOutputMDL = true;
-        usdOutputMDLColors = true;
-        usdOutputDisplayColors = true;
+        usingUsdDevice = false;
+        anariRendererParameters = new Vector();
+        anariUSDParameters = new Vector();
     }
 
     public VolumeAttributes(VolumeAttributes obj)
@@ -285,23 +264,18 @@ public class VolumeAttributes extends AttributeSubject implements Plugin
             materialProperties[i] = obj.materialProperties[i];
 
         anariRendering = obj.anariRendering;
-        anariSPP = obj.anariSPP;
-        anariAO = obj.anariAO;
         anariLibrary = new String(obj.anariLibrary);
         anariLibrarySubtype = new String(obj.anariLibrarySubtype);
         anariRendererSubtype = new String(obj.anariRendererSubtype);
-        anariLightFalloff = obj.anariLightFalloff;
-        anariAmbientIntensity = obj.anariAmbientIntensity;
-        anariMaxDepth = obj.anariMaxDepth;
-        anariRValue = obj.anariRValue;
-        usdDir = new String(obj.usdDir);
-        usdAtCommit = obj.usdAtCommit;
-        usdOutputBinary = obj.usdOutputBinary;
-        usdOutputMaterial = obj.usdOutputMaterial;
-        usdOutputPreviewSurface = obj.usdOutputPreviewSurface;
-        usdOutputMDL = obj.usdOutputMDL;
-        usdOutputMDLColors = obj.usdOutputMDLColors;
-        usdOutputDisplayColors = obj.usdOutputDisplayColors;
+        usingUsdDevice = obj.usingUsdDevice;
+        anariRendererParameters = new Vector(obj.anariRendererParameters.size());
+        for(i = 0; i < obj.anariRendererParameters.size(); ++i)
+            anariRendererParameters.addElement(new String((String)obj.anariRendererParameters.elementAt(i)));
+
+        anariUSDParameters = new Vector(obj.anariUSDParameters.size());
+        for(i = 0; i < obj.anariUSDParameters.size(); ++i)
+            anariUSDParameters.addElement(new String((String)obj.anariUSDParameters.elementAt(i)));
+
 
         SelectAll();
     }
@@ -330,6 +304,24 @@ public class VolumeAttributes extends AttributeSubject implements Plugin
         for(i = 0; i < 4 && materialProperties_equal; ++i)
             materialProperties_equal = (materialProperties[i] == obj.materialProperties[i]);
 
+        // Compare the elements in the anariRendererParameters vector.
+        boolean anariRendererParameters_equal = (obj.anariRendererParameters.size() == anariRendererParameters.size());
+        for(i = 0; (i < anariRendererParameters.size()) && anariRendererParameters_equal; ++i)
+        {
+            // Make references to String from Object.
+            String anariRendererParameters1 = (String)anariRendererParameters.elementAt(i);
+            String anariRendererParameters2 = (String)obj.anariRendererParameters.elementAt(i);
+            anariRendererParameters_equal = anariRendererParameters1.equals(anariRendererParameters2);
+        }
+        // Compare the elements in the anariUSDParameters vector.
+        boolean anariUSDParameters_equal = (obj.anariUSDParameters.size() == anariUSDParameters.size());
+        for(i = 0; (i < anariUSDParameters.size()) && anariUSDParameters_equal; ++i)
+        {
+            // Make references to String from Object.
+            String anariUSDParameters1 = (String)anariUSDParameters.elementAt(i);
+            String anariUSDParameters2 = (String)obj.anariUSDParameters.elementAt(i);
+            anariUSDParameters_equal = anariUSDParameters1.equals(anariUSDParameters2);
+        }
         // Create the return value
         return ((OSPRayEnabledFlag == obj.OSPRayEnabledFlag) &&
                 (OSPRayRenderType == obj.OSPRayRenderType) &&
@@ -377,23 +369,12 @@ public class VolumeAttributes extends AttributeSubject implements Plugin
                 (lowGradientLightingClampValue == obj.lowGradientLightingClampValue) &&
                 materialProperties_equal &&
                 (anariRendering == obj.anariRendering) &&
-                (anariSPP == obj.anariSPP) &&
-                (anariAO == obj.anariAO) &&
                 (anariLibrary.equals(obj.anariLibrary)) &&
                 (anariLibrarySubtype.equals(obj.anariLibrarySubtype)) &&
                 (anariRendererSubtype.equals(obj.anariRendererSubtype)) &&
-                (anariLightFalloff == obj.anariLightFalloff) &&
-                (anariAmbientIntensity == obj.anariAmbientIntensity) &&
-                (anariMaxDepth == obj.anariMaxDepth) &&
-                (anariRValue == obj.anariRValue) &&
-                (usdDir.equals(obj.usdDir)) &&
-                (usdAtCommit == obj.usdAtCommit) &&
-                (usdOutputBinary == obj.usdOutputBinary) &&
-                (usdOutputMaterial == obj.usdOutputMaterial) &&
-                (usdOutputPreviewSurface == obj.usdOutputPreviewSurface) &&
-                (usdOutputMDL == obj.usdOutputMDL) &&
-                (usdOutputMDLColors == obj.usdOutputMDLColors) &&
-                (usdOutputDisplayColors == obj.usdOutputDisplayColors));
+                (usingUsdDevice == obj.usingUsdDevice) &&
+                anariRendererParameters_equal &&
+                anariUSDParameters_equal);
     }
 
     public String GetName() { return "Volume"; }
@@ -689,106 +670,40 @@ public class VolumeAttributes extends AttributeSubject implements Plugin
         Select(45);
     }
 
-    public void SetAnariSPP(int anariSPP_)
-    {
-        anariSPP = anariSPP_;
-        Select(46);
-    }
-
-    public void SetAnariAO(int anariAO_)
-    {
-        anariAO = anariAO_;
-        Select(47);
-    }
-
     public void SetAnariLibrary(String anariLibrary_)
     {
         anariLibrary = anariLibrary_;
-        Select(48);
+        Select(46);
     }
 
     public void SetAnariLibrarySubtype(String anariLibrarySubtype_)
     {
         anariLibrarySubtype = anariLibrarySubtype_;
-        Select(49);
+        Select(47);
     }
 
     public void SetAnariRendererSubtype(String anariRendererSubtype_)
     {
         anariRendererSubtype = anariRendererSubtype_;
+        Select(48);
+    }
+
+    public void SetUsingUsdDevice(boolean usingUsdDevice_)
+    {
+        usingUsdDevice = usingUsdDevice_;
+        Select(49);
+    }
+
+    public void SetAnariRendererParameters(Vector anariRendererParameters_)
+    {
+        anariRendererParameters = anariRendererParameters_;
         Select(50);
     }
 
-    public void SetAnariLightFalloff(float anariLightFalloff_)
+    public void SetAnariUSDParameters(Vector anariUSDParameters_)
     {
-        anariLightFalloff = anariLightFalloff_;
+        anariUSDParameters = anariUSDParameters_;
         Select(51);
-    }
-
-    public void SetAnariAmbientIntensity(float anariAmbientIntensity_)
-    {
-        anariAmbientIntensity = anariAmbientIntensity_;
-        Select(52);
-    }
-
-    public void SetAnariMaxDepth(int anariMaxDepth_)
-    {
-        anariMaxDepth = anariMaxDepth_;
-        Select(53);
-    }
-
-    public void SetAnariRValue(float anariRValue_)
-    {
-        anariRValue = anariRValue_;
-        Select(54);
-    }
-
-    public void SetUsdDir(String usdDir_)
-    {
-        usdDir = usdDir_;
-        Select(55);
-    }
-
-    public void SetUsdAtCommit(boolean usdAtCommit_)
-    {
-        usdAtCommit = usdAtCommit_;
-        Select(56);
-    }
-
-    public void SetUsdOutputBinary(boolean usdOutputBinary_)
-    {
-        usdOutputBinary = usdOutputBinary_;
-        Select(57);
-    }
-
-    public void SetUsdOutputMaterial(boolean usdOutputMaterial_)
-    {
-        usdOutputMaterial = usdOutputMaterial_;
-        Select(58);
-    }
-
-    public void SetUsdOutputPreviewSurface(boolean usdOutputPreviewSurface_)
-    {
-        usdOutputPreviewSurface = usdOutputPreviewSurface_;
-        Select(59);
-    }
-
-    public void SetUsdOutputMDL(boolean usdOutputMDL_)
-    {
-        usdOutputMDL = usdOutputMDL_;
-        Select(60);
-    }
-
-    public void SetUsdOutputMDLColors(boolean usdOutputMDLColors_)
-    {
-        usdOutputMDLColors = usdOutputMDLColors_;
-        Select(61);
-    }
-
-    public void SetUsdOutputDisplayColors(boolean usdOutputDisplayColors_)
-    {
-        usdOutputDisplayColors = usdOutputDisplayColors_;
-        Select(62);
     }
 
     // Property getting methods
@@ -838,23 +753,12 @@ public class VolumeAttributes extends AttributeSubject implements Plugin
     public double                   GetLowGradientLightingClampValue() { return lowGradientLightingClampValue; }
     public double[]                 GetMaterialProperties() { return materialProperties; }
     public boolean                  GetAnariRendering() { return anariRendering; }
-    public int                      GetAnariSPP() { return anariSPP; }
-    public int                      GetAnariAO() { return anariAO; }
     public String                   GetAnariLibrary() { return anariLibrary; }
     public String                   GetAnariLibrarySubtype() { return anariLibrarySubtype; }
     public String                   GetAnariRendererSubtype() { return anariRendererSubtype; }
-    public float                    GetAnariLightFalloff() { return anariLightFalloff; }
-    public float                    GetAnariAmbientIntensity() { return anariAmbientIntensity; }
-    public int                      GetAnariMaxDepth() { return anariMaxDepth; }
-    public float                    GetAnariRValue() { return anariRValue; }
-    public String                   GetUsdDir() { return usdDir; }
-    public boolean                  GetUsdAtCommit() { return usdAtCommit; }
-    public boolean                  GetUsdOutputBinary() { return usdOutputBinary; }
-    public boolean                  GetUsdOutputMaterial() { return usdOutputMaterial; }
-    public boolean                  GetUsdOutputPreviewSurface() { return usdOutputPreviewSurface; }
-    public boolean                  GetUsdOutputMDL() { return usdOutputMDL; }
-    public boolean                  GetUsdOutputMDLColors() { return usdOutputMDLColors; }
-    public boolean                  GetUsdOutputDisplayColors() { return usdOutputDisplayColors; }
+    public boolean                  GetUsingUsdDevice() { return usingUsdDevice; }
+    public Vector                   GetAnariRendererParameters() { return anariRendererParameters; }
+    public Vector                   GetAnariUSDParameters() { return anariUSDParameters; }
 
     // Write and read methods.
     public void WriteAtts(CommunicationBuffer buf)
@@ -952,39 +856,17 @@ public class VolumeAttributes extends AttributeSubject implements Plugin
         if(WriteSelect(45, buf))
             buf.WriteBool(anariRendering);
         if(WriteSelect(46, buf))
-            buf.WriteInt(anariSPP);
-        if(WriteSelect(47, buf))
-            buf.WriteInt(anariAO);
-        if(WriteSelect(48, buf))
             buf.WriteString(anariLibrary);
-        if(WriteSelect(49, buf))
+        if(WriteSelect(47, buf))
             buf.WriteString(anariLibrarySubtype);
-        if(WriteSelect(50, buf))
+        if(WriteSelect(48, buf))
             buf.WriteString(anariRendererSubtype);
+        if(WriteSelect(49, buf))
+            buf.WriteBool(usingUsdDevice);
+        if(WriteSelect(50, buf))
+            buf.WriteStringVector(anariRendererParameters);
         if(WriteSelect(51, buf))
-            buf.WriteFloat(anariLightFalloff);
-        if(WriteSelect(52, buf))
-            buf.WriteFloat(anariAmbientIntensity);
-        if(WriteSelect(53, buf))
-            buf.WriteInt(anariMaxDepth);
-        if(WriteSelect(54, buf))
-            buf.WriteFloat(anariRValue);
-        if(WriteSelect(55, buf))
-            buf.WriteString(usdDir);
-        if(WriteSelect(56, buf))
-            buf.WriteBool(usdAtCommit);
-        if(WriteSelect(57, buf))
-            buf.WriteBool(usdOutputBinary);
-        if(WriteSelect(58, buf))
-            buf.WriteBool(usdOutputMaterial);
-        if(WriteSelect(59, buf))
-            buf.WriteBool(usdOutputPreviewSurface);
-        if(WriteSelect(60, buf))
-            buf.WriteBool(usdOutputMDL);
-        if(WriteSelect(61, buf))
-            buf.WriteBool(usdOutputMDLColors);
-        if(WriteSelect(62, buf))
-            buf.WriteBool(usdOutputDisplayColors);
+            buf.WriteStringVector(anariUSDParameters);
     }
 
     public void ReadAtts(int index, CommunicationBuffer buf)
@@ -1132,55 +1014,22 @@ public class VolumeAttributes extends AttributeSubject implements Plugin
             SetAnariRendering(buf.ReadBool());
             break;
         case 46:
-            SetAnariSPP(buf.ReadInt());
-            break;
-        case 47:
-            SetAnariAO(buf.ReadInt());
-            break;
-        case 48:
             SetAnariLibrary(buf.ReadString());
             break;
-        case 49:
+        case 47:
             SetAnariLibrarySubtype(buf.ReadString());
             break;
-        case 50:
+        case 48:
             SetAnariRendererSubtype(buf.ReadString());
             break;
+        case 49:
+            SetUsingUsdDevice(buf.ReadBool());
+            break;
+        case 50:
+            SetAnariRendererParameters(buf.ReadStringVector());
+            break;
         case 51:
-            SetAnariLightFalloff(buf.ReadFloat());
-            break;
-        case 52:
-            SetAnariAmbientIntensity(buf.ReadFloat());
-            break;
-        case 53:
-            SetAnariMaxDepth(buf.ReadInt());
-            break;
-        case 54:
-            SetAnariRValue(buf.ReadFloat());
-            break;
-        case 55:
-            SetUsdDir(buf.ReadString());
-            break;
-        case 56:
-            SetUsdAtCommit(buf.ReadBool());
-            break;
-        case 57:
-            SetUsdOutputBinary(buf.ReadBool());
-            break;
-        case 58:
-            SetUsdOutputMaterial(buf.ReadBool());
-            break;
-        case 59:
-            SetUsdOutputPreviewSurface(buf.ReadBool());
-            break;
-        case 60:
-            SetUsdOutputMDL(buf.ReadBool());
-            break;
-        case 61:
-            SetUsdOutputMDLColors(buf.ReadBool());
-            break;
-        case 62:
-            SetUsdOutputDisplayColors(buf.ReadBool());
+            SetAnariUSDParameters(buf.ReadStringVector());
             break;
         }
     }
@@ -1316,23 +1165,12 @@ public class VolumeAttributes extends AttributeSubject implements Plugin
         str = str + doubleToString("lowGradientLightingClampValue", lowGradientLightingClampValue, indent) + "\n";
         str = str + doubleArrayToString("materialProperties", materialProperties, indent) + "\n";
         str = str + boolToString("anariRendering", anariRendering, indent) + "\n";
-        str = str + intToString("anariSPP", anariSPP, indent) + "\n";
-        str = str + intToString("anariAO", anariAO, indent) + "\n";
         str = str + stringToString("anariLibrary", anariLibrary, indent) + "\n";
         str = str + stringToString("anariLibrarySubtype", anariLibrarySubtype, indent) + "\n";
         str = str + stringToString("anariRendererSubtype", anariRendererSubtype, indent) + "\n";
-        str = str + floatToString("anariLightFalloff", anariLightFalloff, indent) + "\n";
-        str = str + floatToString("anariAmbientIntensity", anariAmbientIntensity, indent) + "\n";
-        str = str + intToString("anariMaxDepth", anariMaxDepth, indent) + "\n";
-        str = str + floatToString("anariRValue", anariRValue, indent) + "\n";
-        str = str + stringToString("usdDir", usdDir, indent) + "\n";
-        str = str + boolToString("usdAtCommit", usdAtCommit, indent) + "\n";
-        str = str + boolToString("usdOutputBinary", usdOutputBinary, indent) + "\n";
-        str = str + boolToString("usdOutputMaterial", usdOutputMaterial, indent) + "\n";
-        str = str + boolToString("usdOutputPreviewSurface", usdOutputPreviewSurface, indent) + "\n";
-        str = str + boolToString("usdOutputMDL", usdOutputMDL, indent) + "\n";
-        str = str + boolToString("usdOutputMDLColors", usdOutputMDLColors, indent) + "\n";
-        str = str + boolToString("usdOutputDisplayColors", usdOutputDisplayColors, indent) + "\n";
+        str = str + boolToString("usingUsdDevice", usingUsdDevice, indent) + "\n";
+        str = str + stringVectorToString("anariRendererParameters", anariRendererParameters, indent) + "\n";
+        str = str + stringVectorToString("anariUSDParameters", anariUSDParameters, indent) + "\n";
         return str;
     }
 
@@ -1384,22 +1222,11 @@ public class VolumeAttributes extends AttributeSubject implements Plugin
     private double                   lowGradientLightingClampValue;
     private double[]                 materialProperties;
     private boolean                  anariRendering;
-    private int                      anariSPP;
-    private int                      anariAO;
     private String                   anariLibrary;
     private String                   anariLibrarySubtype;
     private String                   anariRendererSubtype;
-    private float                    anariLightFalloff;
-    private float                    anariAmbientIntensity;
-    private int                      anariMaxDepth;
-    private float                    anariRValue;
-    private String                   usdDir;
-    private boolean                  usdAtCommit;
-    private boolean                  usdOutputBinary;
-    private boolean                  usdOutputMaterial;
-    private boolean                  usdOutputPreviewSurface;
-    private boolean                  usdOutputMDL;
-    private boolean                  usdOutputMDLColors;
-    private boolean                  usdOutputDisplayColors;
+    private boolean                  usingUsdDevice;
+    private Vector                   anariRendererParameters; // vector of String objects
+    private Vector                   anariUSDParameters; // vector of String objects
 }
 

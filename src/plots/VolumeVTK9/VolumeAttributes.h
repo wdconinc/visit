@@ -128,7 +128,8 @@ public:
     void SelectAnariLibrary();
     void SelectAnariLibrarySubtype();
     void SelectAnariRendererSubtype();
-    void SelectUsdDir();
+    void SelectAnariRendererParameters();
+    void SelectAnariUSDParameters();
 
     // Property setting methods
     void SetOSPRayEnabledFlag(bool OSPRayEnabledFlag_);
@@ -176,25 +177,13 @@ public:
     void SetLowGradientLightingClampFlag(bool lowGradientLightingClampFlag_);
     void SetLowGradientLightingClampValue(double lowGradientLightingClampValue_);
     void SetMaterialProperties(const double *materialProperties_);
-    // TODO: Remove these
     void SetAnariRendering(bool anariRendering_);
-    void SetAnariSPP(int anariSPP_);
-    void SetAnariAO(int anariAO_);
     void SetAnariLibrary(const std::string &anariLibrary_);
     void SetAnariLibrarySubtype(const std::string &anariLibrarySubtype_);
     void SetAnariRendererSubtype(const std::string &anariRendererSubtype_);
-    void SetAnariLightFalloff(float anariLightFalloff_);
-    void SetAnariAmbientIntensity(float anariAmbientIntensity_);
-    void SetAnariMaxDepth(int anariMaxDepth_);
-    void SetAnariRValue(float anariRValue_);
-    void SetUsdDir(const std::string &usdDir_);
-    void SetUsdAtCommit(bool usdAtCommit_);
-    void SetUsdOutputBinary(bool usdOutputBinary_);
-    void SetUsdOutputMaterial(bool usdOutputMaterial_);
-    void SetUsdOutputPreviewSurface(bool usdOutputPreviewSurface_);
-    void SetUsdOutputMDL(bool usdOutputMDL_);
-    void SetUsdOutputMDLColors(bool usdOutputMDLColors_);
-    void SetUsdOutputDisplayColors(bool usdOutputDisplayColors_);
+    void SetUsingUsdDevice(bool usingUsdDevice_);
+    void SetAnariRendererParameters(const stringVector &anariRendererParameters_);
+    void SetAnariUSDParameters(const stringVector &anariUSDParameters_);
 
     // Property getting methods
     bool                           GetOSPRayEnabledFlag() const;
@@ -248,27 +237,17 @@ public:
     const double                   *GetMaterialProperties() const;
           double                   *GetMaterialProperties();
     bool                           GetAnariRendering() const;
-    int                            GetAnariSPP() const;
-    int                            GetAnariAO() const;
     const std::string              &GetAnariLibrary() const;
           std::string              &GetAnariLibrary();
     const std::string              &GetAnariLibrarySubtype() const;
           std::string              &GetAnariLibrarySubtype();
     const std::string              &GetAnariRendererSubtype() const;
           std::string              &GetAnariRendererSubtype();
-    float                          GetAnariLightFalloff() const;
-    float                          GetAnariAmbientIntensity() const;
-    int                            GetAnariMaxDepth() const;
-    float                          GetAnariRValue() const;
-    const std::string              &GetUsdDir() const;
-          std::string              &GetUsdDir();
-    bool                           GetUsdAtCommit() const;
-    bool                           GetUsdOutputBinary() const;
-    bool                           GetUsdOutputMaterial() const;
-    bool                           GetUsdOutputPreviewSurface() const;
-    bool                           GetUsdOutputMDL() const;
-    bool                           GetUsdOutputMDLColors() const;
-    bool                           GetUsdOutputDisplayColors() const;
+    bool                           GetUsingUsdDevice() const;
+    const stringVector             &GetAnariRendererParameters() const;
+          stringVector             &GetAnariRendererParameters();
+    const stringVector             &GetAnariUSDParameters() const;
+          stringVector             &GetAnariUSDParameters();
 
     // Persistence methods
     virtual bool CreateNode(DataNode *node, bool completeSave, bool forceAdd);
@@ -393,23 +372,12 @@ public:
         ID_lowGradientLightingClampValue,
         ID_materialProperties,
         ID_anariRendering,
-        ID_anariSPP,
-        ID_anariAO,
         ID_anariLibrary,
         ID_anariLibrarySubtype,
         ID_anariRendererSubtype,
-        ID_anariLightFalloff,
-        ID_anariAmbientIntensity,
-        ID_anariMaxDepth,
-        ID_anariRValue,
-        ID_usdDir,
-        ID_usdAtCommit,
-        ID_usdOutputBinary,
-        ID_usdOutputMaterial,
-        ID_usdOutputPreviewSurface,
-        ID_usdOutputMDL,
-        ID_usdOutputMDLColors,
-        ID_usdOutputDisplayColors,
+        ID_usingUsdDevice,
+        ID_anariRendererParameters,
+        ID_anariUSDParameters,
         ID__LAST
     };
 
@@ -460,28 +428,17 @@ private:
     double                   lowGradientLightingClampValue;
     double                   materialProperties[4];
     bool                     anariRendering;
-    int                      anariSPP;
-    int                      anariAO;
     std::string              anariLibrary;
     std::string              anariLibrarySubtype;
     std::string              anariRendererSubtype;
-    float                    anariLightFalloff;
-    float                    anariAmbientIntensity;
-    int                      anariMaxDepth;
-    float                    anariRValue;
-    std::string              usdDir;
-    bool                     usdAtCommit;
-    bool                     usdOutputBinary;
-    bool                     usdOutputMaterial;
-    bool                     usdOutputPreviewSurface;
-    bool                     usdOutputMDL;
-    bool                     usdOutputMDLColors;
-    bool                     usdOutputDisplayColors;
+    bool                     usingUsdDevice;
+    stringVector             anariRendererParameters;
+    stringVector             anariUSDParameters;
 
     // Static class format string for type map.
     static const char *TypeMapFormatString;
     static const private_tmfs_t TmfsStruct;
 };
-#define VOLUMEATTRIBUTES_TMFS "bibbbbbbiidddbbafiaiiisUbfbfbfbfbiiiidiifibdDbiisssffifsbbbbbbb"
+#define VOLUMEATTRIBUTES_TMFS "bibbbbbbiidddbbafiaiiisUbfbfbfbfbiiiidiifibdDbsssbs*s*"
 
 #endif

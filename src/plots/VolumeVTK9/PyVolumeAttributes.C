@@ -412,61 +412,49 @@ PyVolumeAttributes_ToString(const VolumeAttributes *atts, const char *prefix, co
     else
         snprintf(tmpStr, 1000, "%sanariRendering = 0\n", prefix);
     str += tmpStr;
-    snprintf(tmpStr, 1000, "%sanariSPP = %d\n", prefix, atts->GetAnariSPP());
-    str += tmpStr;
-    snprintf(tmpStr, 1000, "%sanariAO = %d\n", prefix, atts->GetAnariAO());
-    str += tmpStr;
     snprintf(tmpStr, 1000, "%sanariLibrary = \"%s\"\n", prefix, atts->GetAnariLibrary().c_str());
     str += tmpStr;
     snprintf(tmpStr, 1000, "%sanariLibrarySubtype = \"%s\"\n", prefix, atts->GetAnariLibrarySubtype().c_str());
     str += tmpStr;
     snprintf(tmpStr, 1000, "%sanariRendererSubtype = \"%s\"\n", prefix, atts->GetAnariRendererSubtype().c_str());
     str += tmpStr;
-    snprintf(tmpStr, 1000, "%sanariLightFalloff = %g\n", prefix, atts->GetAnariLightFalloff());
-    str += tmpStr;
-    snprintf(tmpStr, 1000, "%sanariAmbientIntensity = %g\n", prefix, atts->GetAnariAmbientIntensity());
-    str += tmpStr;
-    snprintf(tmpStr, 1000, "%sanariMaxDepth = %d\n", prefix, atts->GetAnariMaxDepth());
-    str += tmpStr;
-    snprintf(tmpStr, 1000, "%sanariRValue = %g\n", prefix, atts->GetAnariRValue());
-    str += tmpStr;
-    snprintf(tmpStr, 1000, "%susdDir = \"%s\"\n", prefix, atts->GetUsdDir().c_str());
-    str += tmpStr;
-    if(atts->GetUsdAtCommit())
-        snprintf(tmpStr, 1000, "%susdAtCommit = 1\n", prefix);
+    if(atts->GetUsingUsdDevice())
+        snprintf(tmpStr, 1000, "%susingUsdDevice = 1\n", prefix);
     else
-        snprintf(tmpStr, 1000, "%susdAtCommit = 0\n", prefix);
+        snprintf(tmpStr, 1000, "%susingUsdDevice = 0\n", prefix);
     str += tmpStr;
-    if(atts->GetUsdOutputBinary())
-        snprintf(tmpStr, 1000, "%susdOutputBinary = 1\n", prefix);
-    else
-        snprintf(tmpStr, 1000, "%susdOutputBinary = 0\n", prefix);
-    str += tmpStr;
-    if(atts->GetUsdOutputMaterial())
-        snprintf(tmpStr, 1000, "%susdOutputMaterial = 1\n", prefix);
-    else
-        snprintf(tmpStr, 1000, "%susdOutputMaterial = 0\n", prefix);
-    str += tmpStr;
-    if(atts->GetUsdOutputPreviewSurface())
-        snprintf(tmpStr, 1000, "%susdOutputPreviewSurface = 1\n", prefix);
-    else
-        snprintf(tmpStr, 1000, "%susdOutputPreviewSurface = 0\n", prefix);
-    str += tmpStr;
-    if(atts->GetUsdOutputMDL())
-        snprintf(tmpStr, 1000, "%susdOutputMDL = 1\n", prefix);
-    else
-        snprintf(tmpStr, 1000, "%susdOutputMDL = 0\n", prefix);
-    str += tmpStr;
-    if(atts->GetUsdOutputMDLColors())
-        snprintf(tmpStr, 1000, "%susdOutputMDLColors = 1\n", prefix);
-    else
-        snprintf(tmpStr, 1000, "%susdOutputMDLColors = 0\n", prefix);
-    str += tmpStr;
-    if(atts->GetUsdOutputDisplayColors())
-        snprintf(tmpStr, 1000, "%susdOutputDisplayColors = 1\n", prefix);
-    else
-        snprintf(tmpStr, 1000, "%susdOutputDisplayColors = 0\n", prefix);
-    str += tmpStr;
+    {   const stringVector &anariRendererParameters = atts->GetAnariRendererParameters();
+        snprintf(tmpStr, 1000, "%sanariRendererParameters = (", prefix);
+        str += tmpStr;
+        for(size_t i = 0; i < anariRendererParameters.size(); ++i)
+        {
+            snprintf(tmpStr, 1000, "\"%s\"", anariRendererParameters[i].c_str());
+            str += tmpStr;
+            if(i < anariRendererParameters.size() - 1)
+            {
+                snprintf(tmpStr, 1000, ", ");
+                str += tmpStr;
+            }
+        }
+        snprintf(tmpStr, 1000, ")\n");
+        str += tmpStr;
+    }
+    {   const stringVector &anariUSDParameters = atts->GetAnariUSDParameters();
+        snprintf(tmpStr, 1000, "%sanariUSDParameters = (", prefix);
+        str += tmpStr;
+        for(size_t i = 0; i < anariUSDParameters.size(); ++i)
+        {
+            snprintf(tmpStr, 1000, "\"%s\"", anariUSDParameters[i].c_str());
+            str += tmpStr;
+            if(i < anariUSDParameters.size() - 1)
+            {
+                snprintf(tmpStr, 1000, ", ");
+                str += tmpStr;
+            }
+        }
+        snprintf(tmpStr, 1000, ")\n");
+        str += tmpStr;
+    }
     return str;
 }
 
@@ -3289,126 +3277,6 @@ VolumeAttributes_GetAnariRendering(PyObject *self, PyObject *args)
 }
 
 /*static*/ PyObject *
-VolumeAttributes_SetAnariSPP(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-
-    PyObject *packaged_args = 0;
-
-    // Handle args packaged into a tuple of size one
-    // if we think the unpackaged args matches our needs
-    if (PySequence_Check(args) && PySequence_Size(args) == 1)
-    {
-        packaged_args = PySequence_GetItem(args, 0);
-        if (PyNumber_Check(packaged_args))
-            args = packaged_args;
-    }
-
-    if (PySequence_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "expecting a single number arg");
-    }
-
-    if (!PyNumber_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "arg is not a number type");
-    }
-
-    long val = PyLong_AsLong(args);
-    int cval = int(val);
-
-    if (val == -1 && PyErr_Occurred())
-    {
-        Py_XDECREF(packaged_args);
-        PyErr_Clear();
-        return PyErr_Format(PyExc_TypeError, "arg not interpretable as C++ int");
-    }
-    if (fabs(double(val))>1.5E-7 && fabs((double(long(cval))-double(val))/double(val))>1.5E-7)
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_ValueError, "arg not interpretable as C++ int");
-    }
-
-    Py_XDECREF(packaged_args);
-
-    // Set the anariSPP in the object.
-    obj->data->SetAnariSPP(cval);
-
-    Py_INCREF(Py_None);
-    return Py_None;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_GetAnariSPP(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-    PyObject *retval = PyInt_FromLong(long(obj->data->GetAnariSPP()));
-    return retval;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_SetAnariAO(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-
-    PyObject *packaged_args = 0;
-
-    // Handle args packaged into a tuple of size one
-    // if we think the unpackaged args matches our needs
-    if (PySequence_Check(args) && PySequence_Size(args) == 1)
-    {
-        packaged_args = PySequence_GetItem(args, 0);
-        if (PyNumber_Check(packaged_args))
-            args = packaged_args;
-    }
-
-    if (PySequence_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "expecting a single number arg");
-    }
-
-    if (!PyNumber_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "arg is not a number type");
-    }
-
-    long val = PyLong_AsLong(args);
-    int cval = int(val);
-
-    if (val == -1 && PyErr_Occurred())
-    {
-        Py_XDECREF(packaged_args);
-        PyErr_Clear();
-        return PyErr_Format(PyExc_TypeError, "arg not interpretable as C++ int");
-    }
-    if (fabs(double(val))>1.5E-7 && fabs((double(long(cval))-double(val))/double(val))>1.5E-7)
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_ValueError, "arg not interpretable as C++ int");
-    }
-
-    Py_XDECREF(packaged_args);
-
-    // Set the anariAO in the object.
-    obj->data->SetAnariAO(cval);
-
-    Py_INCREF(Py_None);
-    return Py_None;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_GetAnariAO(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-    PyObject *retval = PyInt_FromLong(long(obj->data->GetAnariAO()));
-    return retval;
-}
-
-/*static*/ PyObject *
 VolumeAttributes_SetAnariLibrary(PyObject *self, PyObject *args)
 {
     VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
@@ -3556,296 +3424,7 @@ VolumeAttributes_GetAnariRendererSubtype(PyObject *self, PyObject *args)
 }
 
 /*static*/ PyObject *
-VolumeAttributes_SetAnariLightFalloff(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-
-    PyObject *packaged_args = 0;
-
-    // Handle args packaged into a tuple of size one
-    // if we think the unpackaged args matches our needs
-    if (PySequence_Check(args) && PySequence_Size(args) == 1)
-    {
-        packaged_args = PySequence_GetItem(args, 0);
-        if (PyNumber_Check(packaged_args))
-            args = packaged_args;
-    }
-
-    if (PySequence_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "expecting a single number arg");
-    }
-
-    if (!PyNumber_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "arg is not a number type");
-    }
-
-    double val = PyFloat_AsDouble(args);
-    float cval = float(val);
-
-    if (val == -1 && PyErr_Occurred())
-    {
-        Py_XDECREF(packaged_args);
-        PyErr_Clear();
-        return PyErr_Format(PyExc_TypeError, "arg not interpretable as C++ float");
-    }
-    if (fabs(double(val))>1.5E-7 && fabs((double(double(cval))-double(val))/double(val))>1.5E-7)
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_ValueError, "arg not interpretable as C++ float");
-    }
-
-    Py_XDECREF(packaged_args);
-
-    // Set the anariLightFalloff in the object.
-    obj->data->SetAnariLightFalloff(cval);
-
-    Py_INCREF(Py_None);
-    return Py_None;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_GetAnariLightFalloff(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-    PyObject *retval = PyFloat_FromDouble(double(obj->data->GetAnariLightFalloff()));
-    return retval;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_SetAnariAmbientIntensity(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-
-    PyObject *packaged_args = 0;
-
-    // Handle args packaged into a tuple of size one
-    // if we think the unpackaged args matches our needs
-    if (PySequence_Check(args) && PySequence_Size(args) == 1)
-    {
-        packaged_args = PySequence_GetItem(args, 0);
-        if (PyNumber_Check(packaged_args))
-            args = packaged_args;
-    }
-
-    if (PySequence_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "expecting a single number arg");
-    }
-
-    if (!PyNumber_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "arg is not a number type");
-    }
-
-    double val = PyFloat_AsDouble(args);
-    float cval = float(val);
-
-    if (val == -1 && PyErr_Occurred())
-    {
-        Py_XDECREF(packaged_args);
-        PyErr_Clear();
-        return PyErr_Format(PyExc_TypeError, "arg not interpretable as C++ float");
-    }
-    if (fabs(double(val))>1.5E-7 && fabs((double(double(cval))-double(val))/double(val))>1.5E-7)
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_ValueError, "arg not interpretable as C++ float");
-    }
-
-    Py_XDECREF(packaged_args);
-
-    // Set the anariAmbientIntensity in the object.
-    obj->data->SetAnariAmbientIntensity(cval);
-
-    Py_INCREF(Py_None);
-    return Py_None;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_GetAnariAmbientIntensity(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-    PyObject *retval = PyFloat_FromDouble(double(obj->data->GetAnariAmbientIntensity()));
-    return retval;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_SetAnariMaxDepth(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-
-    PyObject *packaged_args = 0;
-
-    // Handle args packaged into a tuple of size one
-    // if we think the unpackaged args matches our needs
-    if (PySequence_Check(args) && PySequence_Size(args) == 1)
-    {
-        packaged_args = PySequence_GetItem(args, 0);
-        if (PyNumber_Check(packaged_args))
-            args = packaged_args;
-    }
-
-    if (PySequence_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "expecting a single number arg");
-    }
-
-    if (!PyNumber_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "arg is not a number type");
-    }
-
-    long val = PyLong_AsLong(args);
-    int cval = int(val);
-
-    if (val == -1 && PyErr_Occurred())
-    {
-        Py_XDECREF(packaged_args);
-        PyErr_Clear();
-        return PyErr_Format(PyExc_TypeError, "arg not interpretable as C++ int");
-    }
-    if (fabs(double(val))>1.5E-7 && fabs((double(long(cval))-double(val))/double(val))>1.5E-7)
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_ValueError, "arg not interpretable as C++ int");
-    }
-
-    Py_XDECREF(packaged_args);
-
-    // Set the anariMaxDepth in the object.
-    obj->data->SetAnariMaxDepth(cval);
-
-    Py_INCREF(Py_None);
-    return Py_None;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_GetAnariMaxDepth(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-    PyObject *retval = PyInt_FromLong(long(obj->data->GetAnariMaxDepth()));
-    return retval;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_SetAnariRValue(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-
-    PyObject *packaged_args = 0;
-
-    // Handle args packaged into a tuple of size one
-    // if we think the unpackaged args matches our needs
-    if (PySequence_Check(args) && PySequence_Size(args) == 1)
-    {
-        packaged_args = PySequence_GetItem(args, 0);
-        if (PyNumber_Check(packaged_args))
-            args = packaged_args;
-    }
-
-    if (PySequence_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "expecting a single number arg");
-    }
-
-    if (!PyNumber_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "arg is not a number type");
-    }
-
-    double val = PyFloat_AsDouble(args);
-    float cval = float(val);
-
-    if (val == -1 && PyErr_Occurred())
-    {
-        Py_XDECREF(packaged_args);
-        PyErr_Clear();
-        return PyErr_Format(PyExc_TypeError, "arg not interpretable as C++ float");
-    }
-    if (fabs(double(val))>1.5E-7 && fabs((double(double(cval))-double(val))/double(val))>1.5E-7)
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_ValueError, "arg not interpretable as C++ float");
-    }
-
-    Py_XDECREF(packaged_args);
-
-    // Set the anariRValue in the object.
-    obj->data->SetAnariRValue(cval);
-
-    Py_INCREF(Py_None);
-    return Py_None;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_GetAnariRValue(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-    PyObject *retval = PyFloat_FromDouble(double(obj->data->GetAnariRValue()));
-    return retval;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_SetUsdDir(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-
-    PyObject *packaged_args = 0;
-
-    // Handle args packaged as first member of a tuple of size one
-    // if we think the unpackaged args matches our needs
-    if (PySequence_Check(args) && PySequence_Size(args) == 1)
-    {
-        packaged_args = PySequence_GetItem(args, 0);
-        if (PyUnicode_Check(packaged_args))
-            args = packaged_args;
-    }
-
-    if (!PyUnicode_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "arg is not a unicode string");
-    }
-
-    char const *val = PyUnicode_AsUTF8(args);
-    std::string cval = std::string(val);
-
-    if (val == 0 && PyErr_Occurred())
-    {
-        Py_XDECREF(packaged_args);
-        PyErr_Clear();
-        return PyErr_Format(PyExc_TypeError, "arg not interpretable as utf8 string");
-    }
-
-    Py_XDECREF(packaged_args);
-
-    // Set the usdDir in the object.
-    obj->data->SetUsdDir(cval);
-
-    Py_INCREF(Py_None);
-    return Py_None;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_GetUsdDir(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-    PyObject *retval = PyString_FromString(obj->data->GetUsdDir().c_str());
-    return retval;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_SetUsdAtCommit(PyObject *self, PyObject *args)
+VolumeAttributes_SetUsingUsdDevice(PyObject *self, PyObject *args)
 {
     VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
 
@@ -3889,378 +3468,156 @@ VolumeAttributes_SetUsdAtCommit(PyObject *self, PyObject *args)
 
     Py_XDECREF(packaged_args);
 
-    // Set the usdAtCommit in the object.
-    obj->data->SetUsdAtCommit(cval);
+    // Set the usingUsdDevice in the object.
+    obj->data->SetUsingUsdDevice(cval);
 
     Py_INCREF(Py_None);
     return Py_None;
 }
 
 /*static*/ PyObject *
-VolumeAttributes_GetUsdAtCommit(PyObject *self, PyObject *args)
+VolumeAttributes_GetUsingUsdDevice(PyObject *self, PyObject *args)
 {
     VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-    PyObject *retval = PyInt_FromLong(obj->data->GetUsdAtCommit()?1L:0L);
+    PyObject *retval = PyInt_FromLong(obj->data->GetUsingUsdDevice()?1L:0L);
     return retval;
 }
 
 /*static*/ PyObject *
-VolumeAttributes_SetUsdOutputBinary(PyObject *self, PyObject *args)
+VolumeAttributes_SetAnariRendererParameters(PyObject *self, PyObject *args)
 {
     VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
 
-    PyObject *packaged_args = 0;
+    stringVector vec;
 
-    // Handle args packaged into a tuple of size one
-    // if we think the unpackaged args matches our needs
-    if (PySequence_Check(args) && PySequence_Size(args) == 1)
+    if (PyUnicode_Check(args))
     {
-        packaged_args = PySequence_GetItem(args, 0);
-        if (PyNumber_Check(packaged_args))
-            args = packaged_args;
+        char const *val = PyUnicode_AsUTF8(args);
+        std::string cval = std::string(val);
+        if (val == 0 && PyErr_Occurred())
+        {
+            PyErr_Clear();
+            return PyErr_Format(PyExc_TypeError, "arg not interpretable as C++ string");
+        }
+        vec.resize(1);
+        vec[0] = cval;
     }
-
-    if (PySequence_Check(args))
+    else if (PySequence_Check(args))
     {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "expecting a single number arg");
+        vec.resize(PySequence_Size(args));
+        for (Py_ssize_t i = 0; i < PySequence_Size(args); i++)
+        {
+            PyObject *item = PySequence_GetItem(args, i);
+
+            if (!PyUnicode_Check(item))
+            {
+                Py_DECREF(item);
+                return PyErr_Format(PyExc_TypeError, "arg %d is not a unicode string", (int) i);
+            }
+
+            char const *val = PyUnicode_AsUTF8(item);
+            std::string cval = std::string(val);
+
+            if (val == 0 && PyErr_Occurred())
+            {
+                Py_DECREF(item);
+                PyErr_Clear();
+                return PyErr_Format(PyExc_TypeError, "arg %d not interpretable as C++ string", (int) i);
+            }
+            Py_DECREF(item);
+
+            vec[i] = cval;
+        }
     }
+    else
+        return PyErr_Format(PyExc_TypeError, "arg(s) must be one or more string(s)");
 
-    if (!PyNumber_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "arg is not a number type");
-    }
-
-    long val = PyLong_AsLong(args);
-    bool cval = bool(val);
-
-    if (val == -1 && PyErr_Occurred())
-    {
-        Py_XDECREF(packaged_args);
-        PyErr_Clear();
-        return PyErr_Format(PyExc_TypeError, "arg not interpretable as C++ bool");
-    }
-    if (fabs(double(val))>1.5E-7 && fabs((double(long(cval))-double(val))/double(val))>1.5E-7)
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_ValueError, "arg not interpretable as C++ bool");
-    }
-
-    Py_XDECREF(packaged_args);
-
-    // Set the usdOutputBinary in the object.
-    obj->data->SetUsdOutputBinary(cval);
+    obj->data->GetAnariRendererParameters() = vec;
+    // Mark the anariRendererParameters in the object as modified.
+    obj->data->SelectAnariRendererParameters();
 
     Py_INCREF(Py_None);
     return Py_None;
 }
 
 /*static*/ PyObject *
-VolumeAttributes_GetUsdOutputBinary(PyObject *self, PyObject *args)
+VolumeAttributes_GetAnariRendererParameters(PyObject *self, PyObject *args)
 {
     VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-    PyObject *retval = PyInt_FromLong(obj->data->GetUsdOutputBinary()?1L:0L);
+    // Allocate a tuple the with enough entries to hold the anariRendererParameters.
+    const stringVector &anariRendererParameters = obj->data->GetAnariRendererParameters();
+    PyObject *retval = PyTuple_New(anariRendererParameters.size());
+    for(size_t i = 0; i < anariRendererParameters.size(); ++i)
+        PyTuple_SET_ITEM(retval, i, PyString_FromString(anariRendererParameters[i].c_str()));
     return retval;
 }
 
 /*static*/ PyObject *
-VolumeAttributes_SetUsdOutputMaterial(PyObject *self, PyObject *args)
+VolumeAttributes_SetAnariUSDParameters(PyObject *self, PyObject *args)
 {
     VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
 
-    PyObject *packaged_args = 0;
+    stringVector vec;
 
-    // Handle args packaged into a tuple of size one
-    // if we think the unpackaged args matches our needs
-    if (PySequence_Check(args) && PySequence_Size(args) == 1)
+    if (PyUnicode_Check(args))
     {
-        packaged_args = PySequence_GetItem(args, 0);
-        if (PyNumber_Check(packaged_args))
-            args = packaged_args;
+        char const *val = PyUnicode_AsUTF8(args);
+        std::string cval = std::string(val);
+        if (val == 0 && PyErr_Occurred())
+        {
+            PyErr_Clear();
+            return PyErr_Format(PyExc_TypeError, "arg not interpretable as C++ string");
+        }
+        vec.resize(1);
+        vec[0] = cval;
     }
-
-    if (PySequence_Check(args))
+    else if (PySequence_Check(args))
     {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "expecting a single number arg");
+        vec.resize(PySequence_Size(args));
+        for (Py_ssize_t i = 0; i < PySequence_Size(args); i++)
+        {
+            PyObject *item = PySequence_GetItem(args, i);
+
+            if (!PyUnicode_Check(item))
+            {
+                Py_DECREF(item);
+                return PyErr_Format(PyExc_TypeError, "arg %d is not a unicode string", (int) i);
+            }
+
+            char const *val = PyUnicode_AsUTF8(item);
+            std::string cval = std::string(val);
+
+            if (val == 0 && PyErr_Occurred())
+            {
+                Py_DECREF(item);
+                PyErr_Clear();
+                return PyErr_Format(PyExc_TypeError, "arg %d not interpretable as C++ string", (int) i);
+            }
+            Py_DECREF(item);
+
+            vec[i] = cval;
+        }
     }
+    else
+        return PyErr_Format(PyExc_TypeError, "arg(s) must be one or more string(s)");
 
-    if (!PyNumber_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "arg is not a number type");
-    }
-
-    long val = PyLong_AsLong(args);
-    bool cval = bool(val);
-
-    if (val == -1 && PyErr_Occurred())
-    {
-        Py_XDECREF(packaged_args);
-        PyErr_Clear();
-        return PyErr_Format(PyExc_TypeError, "arg not interpretable as C++ bool");
-    }
-    if (fabs(double(val))>1.5E-7 && fabs((double(long(cval))-double(val))/double(val))>1.5E-7)
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_ValueError, "arg not interpretable as C++ bool");
-    }
-
-    Py_XDECREF(packaged_args);
-
-    // Set the usdOutputMaterial in the object.
-    obj->data->SetUsdOutputMaterial(cval);
+    obj->data->GetAnariUSDParameters() = vec;
+    // Mark the anariUSDParameters in the object as modified.
+    obj->data->SelectAnariUSDParameters();
 
     Py_INCREF(Py_None);
     return Py_None;
 }
 
 /*static*/ PyObject *
-VolumeAttributes_GetUsdOutputMaterial(PyObject *self, PyObject *args)
+VolumeAttributes_GetAnariUSDParameters(PyObject *self, PyObject *args)
 {
     VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-    PyObject *retval = PyInt_FromLong(obj->data->GetUsdOutputMaterial()?1L:0L);
-    return retval;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_SetUsdOutputPreviewSurface(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-
-    PyObject *packaged_args = 0;
-
-    // Handle args packaged into a tuple of size one
-    // if we think the unpackaged args matches our needs
-    if (PySequence_Check(args) && PySequence_Size(args) == 1)
-    {
-        packaged_args = PySequence_GetItem(args, 0);
-        if (PyNumber_Check(packaged_args))
-            args = packaged_args;
-    }
-
-    if (PySequence_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "expecting a single number arg");
-    }
-
-    if (!PyNumber_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "arg is not a number type");
-    }
-
-    long val = PyLong_AsLong(args);
-    bool cval = bool(val);
-
-    if (val == -1 && PyErr_Occurred())
-    {
-        Py_XDECREF(packaged_args);
-        PyErr_Clear();
-        return PyErr_Format(PyExc_TypeError, "arg not interpretable as C++ bool");
-    }
-    if (fabs(double(val))>1.5E-7 && fabs((double(long(cval))-double(val))/double(val))>1.5E-7)
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_ValueError, "arg not interpretable as C++ bool");
-    }
-
-    Py_XDECREF(packaged_args);
-
-    // Set the usdOutputPreviewSurface in the object.
-    obj->data->SetUsdOutputPreviewSurface(cval);
-
-    Py_INCREF(Py_None);
-    return Py_None;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_GetUsdOutputPreviewSurface(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-    PyObject *retval = PyInt_FromLong(obj->data->GetUsdOutputPreviewSurface()?1L:0L);
-    return retval;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_SetUsdOutputMDL(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-
-    PyObject *packaged_args = 0;
-
-    // Handle args packaged into a tuple of size one
-    // if we think the unpackaged args matches our needs
-    if (PySequence_Check(args) && PySequence_Size(args) == 1)
-    {
-        packaged_args = PySequence_GetItem(args, 0);
-        if (PyNumber_Check(packaged_args))
-            args = packaged_args;
-    }
-
-    if (PySequence_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "expecting a single number arg");
-    }
-
-    if (!PyNumber_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "arg is not a number type");
-    }
-
-    long val = PyLong_AsLong(args);
-    bool cval = bool(val);
-
-    if (val == -1 && PyErr_Occurred())
-    {
-        Py_XDECREF(packaged_args);
-        PyErr_Clear();
-        return PyErr_Format(PyExc_TypeError, "arg not interpretable as C++ bool");
-    }
-    if (fabs(double(val))>1.5E-7 && fabs((double(long(cval))-double(val))/double(val))>1.5E-7)
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_ValueError, "arg not interpretable as C++ bool");
-    }
-
-    Py_XDECREF(packaged_args);
-
-    // Set the usdOutputMDL in the object.
-    obj->data->SetUsdOutputMDL(cval);
-
-    Py_INCREF(Py_None);
-    return Py_None;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_GetUsdOutputMDL(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-    PyObject *retval = PyInt_FromLong(obj->data->GetUsdOutputMDL()?1L:0L);
-    return retval;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_SetUsdOutputMDLColors(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-
-    PyObject *packaged_args = 0;
-
-    // Handle args packaged into a tuple of size one
-    // if we think the unpackaged args matches our needs
-    if (PySequence_Check(args) && PySequence_Size(args) == 1)
-    {
-        packaged_args = PySequence_GetItem(args, 0);
-        if (PyNumber_Check(packaged_args))
-            args = packaged_args;
-    }
-
-    if (PySequence_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "expecting a single number arg");
-    }
-
-    if (!PyNumber_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "arg is not a number type");
-    }
-
-    long val = PyLong_AsLong(args);
-    bool cval = bool(val);
-
-    if (val == -1 && PyErr_Occurred())
-    {
-        Py_XDECREF(packaged_args);
-        PyErr_Clear();
-        return PyErr_Format(PyExc_TypeError, "arg not interpretable as C++ bool");
-    }
-    if (fabs(double(val))>1.5E-7 && fabs((double(long(cval))-double(val))/double(val))>1.5E-7)
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_ValueError, "arg not interpretable as C++ bool");
-    }
-
-    Py_XDECREF(packaged_args);
-
-    // Set the usdOutputMDLColors in the object.
-    obj->data->SetUsdOutputMDLColors(cval);
-
-    Py_INCREF(Py_None);
-    return Py_None;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_GetUsdOutputMDLColors(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-    PyObject *retval = PyInt_FromLong(obj->data->GetUsdOutputMDLColors()?1L:0L);
-    return retval;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_SetUsdOutputDisplayColors(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-
-    PyObject *packaged_args = 0;
-
-    // Handle args packaged into a tuple of size one
-    // if we think the unpackaged args matches our needs
-    if (PySequence_Check(args) && PySequence_Size(args) == 1)
-    {
-        packaged_args = PySequence_GetItem(args, 0);
-        if (PyNumber_Check(packaged_args))
-            args = packaged_args;
-    }
-
-    if (PySequence_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "expecting a single number arg");
-    }
-
-    if (!PyNumber_Check(args))
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_TypeError, "arg is not a number type");
-    }
-
-    long val = PyLong_AsLong(args);
-    bool cval = bool(val);
-
-    if (val == -1 && PyErr_Occurred())
-    {
-        Py_XDECREF(packaged_args);
-        PyErr_Clear();
-        return PyErr_Format(PyExc_TypeError, "arg not interpretable as C++ bool");
-    }
-    if (fabs(double(val))>1.5E-7 && fabs((double(long(cval))-double(val))/double(val))>1.5E-7)
-    {
-        Py_XDECREF(packaged_args);
-        return PyErr_Format(PyExc_ValueError, "arg not interpretable as C++ bool");
-    }
-
-    Py_XDECREF(packaged_args);
-
-    // Set the usdOutputDisplayColors in the object.
-    obj->data->SetUsdOutputDisplayColors(cval);
-
-    Py_INCREF(Py_None);
-    return Py_None;
-}
-
-/*static*/ PyObject *
-VolumeAttributes_GetUsdOutputDisplayColors(PyObject *self, PyObject *args)
-{
-    VolumeAttributesObject *obj = (VolumeAttributesObject *)self;
-    PyObject *retval = PyInt_FromLong(obj->data->GetUsdOutputDisplayColors()?1L:0L);
+    // Allocate a tuple the with enough entries to hold the anariUSDParameters.
+    const stringVector &anariUSDParameters = obj->data->GetAnariUSDParameters();
+    PyObject *retval = PyTuple_New(anariUSDParameters.size());
+    for(size_t i = 0; i < anariUSDParameters.size(); ++i)
+        PyTuple_SET_ITEM(retval, i, PyString_FromString(anariUSDParameters[i].c_str()));
     return retval;
 }
 
@@ -4360,40 +3717,18 @@ PyMethodDef PyVolumeAttributes_methods[VOLUMEATTRIBUTES_NMETH] = {
     {"GetMaterialProperties", VolumeAttributes_GetMaterialProperties, METH_VARARGS},
     {"SetAnariRendering", VolumeAttributes_SetAnariRendering, METH_VARARGS},
     {"GetAnariRendering", VolumeAttributes_GetAnariRendering, METH_VARARGS},
-    {"SetAnariSPP", VolumeAttributes_SetAnariSPP, METH_VARARGS},
-    {"GetAnariSPP", VolumeAttributes_GetAnariSPP, METH_VARARGS},
-    {"SetAnariAO", VolumeAttributes_SetAnariAO, METH_VARARGS},
-    {"GetAnariAO", VolumeAttributes_GetAnariAO, METH_VARARGS},
     {"SetAnariLibrary", VolumeAttributes_SetAnariLibrary, METH_VARARGS},
     {"GetAnariLibrary", VolumeAttributes_GetAnariLibrary, METH_VARARGS},
     {"SetAnariLibrarySubtype", VolumeAttributes_SetAnariLibrarySubtype, METH_VARARGS},
     {"GetAnariLibrarySubtype", VolumeAttributes_GetAnariLibrarySubtype, METH_VARARGS},
     {"SetAnariRendererSubtype", VolumeAttributes_SetAnariRendererSubtype, METH_VARARGS},
     {"GetAnariRendererSubtype", VolumeAttributes_GetAnariRendererSubtype, METH_VARARGS},
-    {"SetAnariLightFalloff", VolumeAttributes_SetAnariLightFalloff, METH_VARARGS},
-    {"GetAnariLightFalloff", VolumeAttributes_GetAnariLightFalloff, METH_VARARGS},
-    {"SetAnariAmbientIntensity", VolumeAttributes_SetAnariAmbientIntensity, METH_VARARGS},
-    {"GetAnariAmbientIntensity", VolumeAttributes_GetAnariAmbientIntensity, METH_VARARGS},
-    {"SetAnariMaxDepth", VolumeAttributes_SetAnariMaxDepth, METH_VARARGS},
-    {"GetAnariMaxDepth", VolumeAttributes_GetAnariMaxDepth, METH_VARARGS},
-    {"SetAnariRValue", VolumeAttributes_SetAnariRValue, METH_VARARGS},
-    {"GetAnariRValue", VolumeAttributes_GetAnariRValue, METH_VARARGS},
-    {"SetUsdDir", VolumeAttributes_SetUsdDir, METH_VARARGS},
-    {"GetUsdDir", VolumeAttributes_GetUsdDir, METH_VARARGS},
-    {"SetUsdAtCommit", VolumeAttributes_SetUsdAtCommit, METH_VARARGS},
-    {"GetUsdAtCommit", VolumeAttributes_GetUsdAtCommit, METH_VARARGS},
-    {"SetUsdOutputBinary", VolumeAttributes_SetUsdOutputBinary, METH_VARARGS},
-    {"GetUsdOutputBinary", VolumeAttributes_GetUsdOutputBinary, METH_VARARGS},
-    {"SetUsdOutputMaterial", VolumeAttributes_SetUsdOutputMaterial, METH_VARARGS},
-    {"GetUsdOutputMaterial", VolumeAttributes_GetUsdOutputMaterial, METH_VARARGS},
-    {"SetUsdOutputPreviewSurface", VolumeAttributes_SetUsdOutputPreviewSurface, METH_VARARGS},
-    {"GetUsdOutputPreviewSurface", VolumeAttributes_GetUsdOutputPreviewSurface, METH_VARARGS},
-    {"SetUsdOutputMDL", VolumeAttributes_SetUsdOutputMDL, METH_VARARGS},
-    {"GetUsdOutputMDL", VolumeAttributes_GetUsdOutputMDL, METH_VARARGS},
-    {"SetUsdOutputMDLColors", VolumeAttributes_SetUsdOutputMDLColors, METH_VARARGS},
-    {"GetUsdOutputMDLColors", VolumeAttributes_GetUsdOutputMDLColors, METH_VARARGS},
-    {"SetUsdOutputDisplayColors", VolumeAttributes_SetUsdOutputDisplayColors, METH_VARARGS},
-    {"GetUsdOutputDisplayColors", VolumeAttributes_GetUsdOutputDisplayColors, METH_VARARGS},
+    {"SetUsingUsdDevice", VolumeAttributes_SetUsingUsdDevice, METH_VARARGS},
+    {"GetUsingUsdDevice", VolumeAttributes_GetUsingUsdDevice, METH_VARARGS},
+    {"SetAnariRendererParameters", VolumeAttributes_SetAnariRendererParameters, METH_VARARGS},
+    {"GetAnariRendererParameters", VolumeAttributes_GetAnariRendererParameters, METH_VARARGS},
+    {"SetAnariUSDParameters", VolumeAttributes_SetAnariUSDParameters, METH_VARARGS},
+    {"GetAnariUSDParameters", VolumeAttributes_GetAnariUSDParameters, METH_VARARGS},
     {NULL, NULL}
 };
 
@@ -4589,40 +3924,18 @@ PyVolumeAttributes_getattr(PyObject *self, char *name)
         return VolumeAttributes_GetMaterialProperties(self, NULL);
     if(strcmp(name, "anariRendering") == 0)
         return VolumeAttributes_GetAnariRendering(self, NULL);
-    if(strcmp(name, "anariSPP") == 0)
-        return VolumeAttributes_GetAnariSPP(self, NULL);
-    if(strcmp(name, "anariAO") == 0)
-        return VolumeAttributes_GetAnariAO(self, NULL);
     if(strcmp(name, "anariLibrary") == 0)
         return VolumeAttributes_GetAnariLibrary(self, NULL);
     if(strcmp(name, "anariLibrarySubtype") == 0)
         return VolumeAttributes_GetAnariLibrarySubtype(self, NULL);
     if(strcmp(name, "anariRendererSubtype") == 0)
         return VolumeAttributes_GetAnariRendererSubtype(self, NULL);
-    if(strcmp(name, "anariLightFalloff") == 0)
-        return VolumeAttributes_GetAnariLightFalloff(self, NULL);
-    if(strcmp(name, "anariAmbientIntensity") == 0)
-        return VolumeAttributes_GetAnariAmbientIntensity(self, NULL);
-    if(strcmp(name, "anariMaxDepth") == 0)
-        return VolumeAttributes_GetAnariMaxDepth(self, NULL);
-    if(strcmp(name, "anariRValue") == 0)
-        return VolumeAttributes_GetAnariRValue(self, NULL);
-    if(strcmp(name, "usdDir") == 0)
-        return VolumeAttributes_GetUsdDir(self, NULL);
-    if(strcmp(name, "usdAtCommit") == 0)
-        return VolumeAttributes_GetUsdAtCommit(self, NULL);
-    if(strcmp(name, "usdOutputBinary") == 0)
-        return VolumeAttributes_GetUsdOutputBinary(self, NULL);
-    if(strcmp(name, "usdOutputMaterial") == 0)
-        return VolumeAttributes_GetUsdOutputMaterial(self, NULL);
-    if(strcmp(name, "usdOutputPreviewSurface") == 0)
-        return VolumeAttributes_GetUsdOutputPreviewSurface(self, NULL);
-    if(strcmp(name, "usdOutputMDL") == 0)
-        return VolumeAttributes_GetUsdOutputMDL(self, NULL);
-    if(strcmp(name, "usdOutputMDLColors") == 0)
-        return VolumeAttributes_GetUsdOutputMDLColors(self, NULL);
-    if(strcmp(name, "usdOutputDisplayColors") == 0)
-        return VolumeAttributes_GetUsdOutputDisplayColors(self, NULL);
+    if(strcmp(name, "usingUsdDevice") == 0)
+        return VolumeAttributes_GetUsingUsdDevice(self, NULL);
+    if(strcmp(name, "anariRendererParameters") == 0)
+        return VolumeAttributes_GetAnariRendererParameters(self, NULL);
+    if(strcmp(name, "anariUSDParameters") == 0)
+        return VolumeAttributes_GetAnariUSDParameters(self, NULL);
 
 #include <visit-config.h>
 
@@ -4776,40 +4089,18 @@ PyVolumeAttributes_setattr(PyObject *self, char *name, PyObject *args)
         obj = VolumeAttributes_SetMaterialProperties(self, args);
     else if(strcmp(name, "anariRendering") == 0)
         obj = VolumeAttributes_SetAnariRendering(self, args);
-    else if(strcmp(name, "anariSPP") == 0)
-        obj = VolumeAttributes_SetAnariSPP(self, args);
-    else if(strcmp(name, "anariAO") == 0)
-        obj = VolumeAttributes_SetAnariAO(self, args);
     else if(strcmp(name, "anariLibrary") == 0)
         obj = VolumeAttributes_SetAnariLibrary(self, args);
     else if(strcmp(name, "anariLibrarySubtype") == 0)
         obj = VolumeAttributes_SetAnariLibrarySubtype(self, args);
     else if(strcmp(name, "anariRendererSubtype") == 0)
         obj = VolumeAttributes_SetAnariRendererSubtype(self, args);
-    else if(strcmp(name, "anariLightFalloff") == 0)
-        obj = VolumeAttributes_SetAnariLightFalloff(self, args);
-    else if(strcmp(name, "anariAmbientIntensity") == 0)
-        obj = VolumeAttributes_SetAnariAmbientIntensity(self, args);
-    else if(strcmp(name, "anariMaxDepth") == 0)
-        obj = VolumeAttributes_SetAnariMaxDepth(self, args);
-    else if(strcmp(name, "anariRValue") == 0)
-        obj = VolumeAttributes_SetAnariRValue(self, args);
-    else if(strcmp(name, "usdDir") == 0)
-        obj = VolumeAttributes_SetUsdDir(self, args);
-    else if(strcmp(name, "usdAtCommit") == 0)
-        obj = VolumeAttributes_SetUsdAtCommit(self, args);
-    else if(strcmp(name, "usdOutputBinary") == 0)
-        obj = VolumeAttributes_SetUsdOutputBinary(self, args);
-    else if(strcmp(name, "usdOutputMaterial") == 0)
-        obj = VolumeAttributes_SetUsdOutputMaterial(self, args);
-    else if(strcmp(name, "usdOutputPreviewSurface") == 0)
-        obj = VolumeAttributes_SetUsdOutputPreviewSurface(self, args);
-    else if(strcmp(name, "usdOutputMDL") == 0)
-        obj = VolumeAttributes_SetUsdOutputMDL(self, args);
-    else if(strcmp(name, "usdOutputMDLColors") == 0)
-        obj = VolumeAttributes_SetUsdOutputMDLColors(self, args);
-    else if(strcmp(name, "usdOutputDisplayColors") == 0)
-        obj = VolumeAttributes_SetUsdOutputDisplayColors(self, args);
+    else if(strcmp(name, "usingUsdDevice") == 0)
+        obj = VolumeAttributes_SetUsingUsdDevice(self, args);
+    else if(strcmp(name, "anariRendererParameters") == 0)
+        obj = VolumeAttributes_SetAnariRendererParameters(self, args);
+    else if(strcmp(name, "anariUSDParameters") == 0)
+        obj = VolumeAttributes_SetAnariUSDParameters(self, args);
 
 #if VISIT_OBSOLETE_AT_VERSION(3,5,0)
 #error This code is obsolete in this version of VisIt. Please remove it

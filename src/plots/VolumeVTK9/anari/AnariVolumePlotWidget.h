@@ -9,8 +9,8 @@
 #include <QWidget>
 
 #include <anari/anari_cpp.hpp>
+#include <vectortypes.h>
 
-#include <vector>
 #include <memory>
 
 class VolumeAttributes;
@@ -22,6 +22,7 @@ class QPushButton;
 class QLineEdit;
 class QCheckBox;
 class QStackedLayout;
+class AnariParameterInfo;
 
 namespace anari_visit
 {
@@ -35,21 +36,9 @@ namespace anari_visit
         OSPRAY,
         RADEONPRORENDER
     };
-
-    enum class USDParameter
-    {
-        COMMIT,
-        BINARY,
-        MATERIAL,
-        PREVIEW,
-        MDL,
-        MDLCOLORS,
-        DISPLAY
-    };
 }
 
 using BackendType = anari_visit::BackendType;
-using USDParameter = anari_visit::USDParameter;
 
 class GUI_API AnariVolumePlotWidget : public QWidget
 {
@@ -60,7 +49,7 @@ public:
                           QWidget *parent = nullptr);
     ~AnariVolumePlotWidget() = default;
 
-    int GetRowCount() const { return totalRows; }
+    int GetRowCount() const { return (topRows + bottomRows); }
 
     // General
     void SetChecked(const bool);
@@ -68,17 +57,9 @@ public:
     void UpdateLibrarySubtypes(const std::string);
     void UpdateRendererSubtypes(const std::string);
 
-    // Back-end
-    void UpdateSamplesPerPixel(const int);
-    void UpdateAOSamples(const int);
-    void UpdateLightFalloff(const float);
-    void UpdateAmbientIntensity(const float);
-    void UpdateMaxDepth(const int);
-    void UpdateRValue(const float);
-
-    // USD Back-end
-    void UpdateUSDOutputLocation(const std::string);
-    void UpdateUSDParameter(const USDParameter, const bool);
+    // Dynamic
+    void UpdateRendererParameters(const stringVector &);
+    void UpdateUSDParameters(const stringVector &);
 
 signals:
     void currentBackendChanged(int);
@@ -89,41 +70,34 @@ private slots:
     void librarySubtypeChanged(const QString &);
     void rendererSubtypeChanged(const QString &);
 
-    // General
-    void samplesPerPixelChanged(int);
-    void aoSamplesChanged(int);
-    void lightFalloffChanged();
-    void ambientIntensityChanged();
-    void maxDepthChanged(int);
-    void rValueChanged();
-
-    // USD
-    void outputLocationChanged();
     void selectButtonPressed();
-    void commitToggled(bool);
-    void binaryToggled(bool);
-    void materialToggled(bool);
-    void previewSurfaceToggled(bool);
-    void mdlToggled(bool);
-    void mdlColorsToggled(bool);
-    void displayColorsToggled(bool);
+
+    // Dynamic
+    void spinBoxValueChanged(int);
+    void lineEditingFinished();
+    void comboBoxTextChanged(const QString &);
+    void checkBoxToggled(bool);
 
 private:
     QWidget *CreateGeneralWidget(int &);
-    QWidget *CreateBackendWidget(int &);
     QWidget *CreateUSDWidget(int &);
+    void CreateDynamicWidget(anari::Device, const char *, const std::string &, bool isUSD = false);
 
     BackendType GetBackendType(const std::string &) const;
-
-    void UpdateUI();
-    void UpdateRendererParams(const std::string &, anari::Device anariDevice = nullptr);
+    AnariParameterInfo GetParameterInfo(anari::Device, ANARIDataType, const char *, const ANARIParameter *);
+    QWidget *MakeWidgetFromParameterInfo(const AnariParameterInfo &);
+    void UpdateRenderingAttributes(const bool);
+    void ClearAnariParameterAttributes();
 
     QvisVolumePlotWindow *renderingWindow;
     VolumeAttributes *volumeAttributes;
-    QStackedLayout *backendStackedLayout;
+    QStackedLayout *dynamicLayouts; // Caches the dynamic widgets
 
-    std::unique_ptr<std::vector<std::string>> rendererParams;
-    int totalRows;
+    // Mapping of dynamic widget key (backend:subtype:renderer) to index in
+    // dyamicLayouts
+    std::map<std::string, int> dynamicLayoutMap;
+    int topRows;
+    int bottomRows;
 
     // General Widget Components
     QGroupBox   *renderingGroup;
@@ -131,24 +105,12 @@ private:
     QComboBox   *librarySubtypes;
     QComboBox   *rendererSubtypes;
 
-    // Backend widget UI components
-    QSpinBox    *samplesPerPixel;
-    QSpinBox    *aoSamples;
-    QLineEdit   *lightFalloff;
-    QLineEdit   *ambientIntensity;
-    QSpinBox    *maxDepth;
-    QLineEdit   *rValue;
+    // File Chooser
+    QString     currentDirectory;
+    QLineEdit   *dirLineEdit;
 
-    // USD widget UI components
-    std::unique_ptr<QString>    outputDir;
-    QLineEdit   *dirLineEdit{ nullptr};
-    QCheckBox   *commitCheckBox{ nullptr };
-    QCheckBox   *binaryCheckBox{ nullptr };
-    QCheckBox   *materialCheckBox{ nullptr };
-    QCheckBox   *previewCheckBox{ nullptr };
-    QCheckBox   *mdlCheckBox{ nullptr };
-    QCheckBox   *mdlColorCheckBox{ nullptr };
-    QCheckBox   *displayColorCheckBox{ nullptr };
+    static const std::string USD_WIDGET_KEY;
+    static const std::string DEFAULT_WIDGET_KEY;
 };
 
 #endif

@@ -50,7 +50,9 @@ ${COMMON_SOURCES}
 )
 
 if(VISIT_ANARI)
-    list(APPEND LIBG_SOURCES anari/AnariVolumePlotWidget.C)
+    list(APPEND LIBG_SOURCES
+            anari/AnariVolumePlotWidget.C
+            anari/AnariParameterInfo.C)
     add_definitions(-DHAVE_ANARI)
 endif(VISIT_ANARI)
 
@@ -104,7 +106,8 @@ endif()
 IF(NOT VISIT_SERVER_COMPONENTS_ONLY AND NOT VISIT_ENGINE_ONLY AND NOT VISIT_DBIO_ONLY)
     ADD_LIBRARY(GVolumePlot ${LIBG_SOURCES})
     set_target_properties(GVolumePlot PROPERTIES AUTOMOC ON)
-    TARGET_LINK_LIBRARIES(GVolumePlot visitcommon gui )
+    TARGET_LINK_LIBRARIES(GVolumePlot visitcommon gui)
+    # $<$<BOOL:${VISIT_ANARI}>:anari::anari>
 
     ADD_LIBRARY(VVolumePlot ${LIBV_SOURCES})
     ADD_TARGET_DEFINITIONS(VVolumePlot VIEWER)
@@ -145,8 +148,7 @@ TARGET_LINK_LIBRARIES(EVolumePlot_ser
     avtplotter_ser
     avtpipeline_ser
     avtexpressions_ser
-    VTK::RenderingVolumeOpenGL2
-    $<$<BOOL:${VISIT_ANARI}>:anari::anari>)
+    VTK::RenderingVolumeOpenGL2)
 if(TARGET  VTK::RenderingRayTracing)
     target_link_libraries(EVolumePlot_ser VTK::RenderingRayTracing)
 endif()
@@ -164,8 +166,7 @@ IF(VISIT_PARALLEL)
         avtplotter_par
         avtpipeline_par
         avtexpressions_par
-        VTK::RenderingVolumeOpenGL2
-        $<$<BOOL:${VISIT_ANARI}>:anari::anari>)
+        VTK::RenderingVolumeOpenGL2)
     if(TARGET  VTK::RenderingRayTracing)
         target_link_libraries(EVolumePlot_par VTK::RenderingRayTracing)
     endif()

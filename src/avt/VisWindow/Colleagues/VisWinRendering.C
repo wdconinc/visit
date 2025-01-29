@@ -261,7 +261,7 @@ VisWinRendering::VisWinRendering(VisWindowColleagueProxy &p) :
 #ifdef VISIT_ANARI
     vtkLogger::SetStderrVerbosity(vtkLogger::Verbosity::VERBOSITY_ERROR);
     anariRendering = false;
-    anariLibraryName = "environment";
+    anariLibraryName = "";
     anariLibrarySubtype = "default";
     anariRendererSubtype = "default";
     anariRendererParameters = stringVector();
@@ -3263,9 +3263,16 @@ VisWinRendering::SetAnariRendererParameters(const stringVector &rendererParams)
 {
     if(anariRendererParameters != rendererParams)
     {
-        anariRendererParameters = rendererParams;
         auto anariDevice = this->anariPass->GetAnariDevice()->GetHandle();
         auto anariRenderer = this->anariPass->GetAnariRenderer()->GetHandle();
+
+        if(anariDevice == nullptr || anariRenderer == nullptr)
+        {
+            debug5 << "[ANARI::SetAnariRendererParameters] ANARI handle is NULL" << std::endl;
+            return;
+        }
+
+        anariRendererParameters = rendererParams;
         const ANARIParameter *parameterList =
                 static_cast<const ANARIParameter*>(anariGetObjectInfo(anariDevice,
                                                                       ANARI_RENDERER,
@@ -3389,9 +3396,15 @@ VisWinRendering::SetAnariUSDParameters(const stringVector &usdParams)
 {
     if(anariUSDParameters != usdParams)
     {
-        anariUSDParameters = usdParams;
         auto anariDevice = this->anariPass->GetAnariDevice()->GetHandle();
-        auto anariRenderer = this->anariPass->GetAnariRenderer()->GetHandle();
+
+        if(anariDevice == nullptr)
+        {
+            debug5 << "[ANARI::SetAnariUSDParameters] Device is NULL" << std::endl;
+            return;
+        }
+
+        anariUSDParameters = usdParams;
         const ANARIParameter *parameterList =
                 static_cast<const ANARIParameter*>(anariGetObjectInfo(anariDevice,
                                                                       ANARI_DEVICE,
