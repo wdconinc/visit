@@ -176,12 +176,15 @@ avtGhostAwareUnaryMathExpression::IdentifyGhostedNodes(vtkDataSet *in_ds,
 // ****************************************************************************
 
 void
-avtGhostAwareUnaryMathExpression::DoOperation(vtkDataArray *in, vtkDataArray *out,
-                          int ncomponents, int ntuples, vtkDataSet *in_ds)
+avtGhostAwareUnaryMathExpression::DoOperation(vtkDataArray *in, 
+                                              vtkDataArray *out,
+                                              int ncomponents,
+                                              int ntuples,
+                                              vtkDataSet *in_ds)
 {
     vtkDataArray *ghostZones = in_ds->GetCellData()->GetArray("avtGhostZones");
     vtkDataArray *ghostNodes = in_ds->GetPointData()->GetArray("avtGhostNodes");
-    int *nodeShouldBeIgnoredPtr = nullptr;
+    std::vector<double> results_per_component(ncomponents);
 
     if (AVT_ZONECENT == centering)
     {
@@ -190,17 +193,21 @@ avtGhostAwareUnaryMathExpression::DoOperation(vtkDataArray *in, vtkDataArray *ou
             // we pass a lambda to CalculateWithGhosts() that
             // looks at the ghostZones to determine if a cell
             // is valid and ignores the nodeShouldBeIgnoredPtr.
-            CalculateWithGhosts(in, out, ncomponents, ntuples,
+            CalculateWithGhosts(in, // input dataset
+                                results_per_component, // output
+                                ncomponents, // number of components
+                                ntuples, // number of tuples
+                                // lambda for determining if a cell should be counted
                                 [](vtkDataArray *ghostZones,
                                    int *nodeShouldBeIgnoredPtr,
                                    int tuple_id) -> int 
                                    { return ghostZones->GetComponent(tuple_id, 0); },
-                                ghostZones,
-                                nodeShouldBeIgnoredPtr);
+                                ghostZones, // ghost zones array
+                                nullptr); // nodeShouldBeIgnoredPtr is irrelevant for zone-centered data
         }
         else // no ghosts or just ghost nodes
         {
-            CalculateWithoutGhosts(in, out, ncomponents, ntuples);
+            CalculateWithoutGhosts(in, results_per_component, ncomponents, ntuples);
         }
     }
     else // AVT_NODECENT == centering
@@ -211,23 +218,36 @@ avtGhostAwareUnaryMathExpression::DoOperation(vtkDataArray *in, vtkDataArray *ou
             // we need to identify which nodes should be ignored
             std::vector<int> nodeShouldBeIgnored = IdentifyGhostedNodes(
                 in_ds, ghostZones, ghostNodes);
-            nodeShouldBeIgnoredPtr = nodeShouldBeIgnored.data();
 
             // we pass a lambda to CalculateWithGhosts() that
             // looks at the nodeShouldBeIgnoredPtr to determine 
             // if a node is valid and ignores the ghostZones.
-            CalculateWithGhosts(in, out, ncomponents, ntuples,
+            CalculateWithGhosts(in, // input dataset
+                                results_per_component, // output
+                                ncomponents, // number of components
+                                ntuples, // number of tuples
+                                // lambda for determining if a node should be counted
                                 [](vtkDataArray *ghostZones,
                                    int *nodeShouldBeIgnoredPtr,
                                    int tuple_id) -> int 
                                    { return nodeShouldBeIgnoredPtr[tuple_id]; },
-                                ghostZones,
-                                nodeShouldBeIgnoredPtr);
+                                ghostZones, // ghost zones array
+                                nodeShouldBeIgnored.data()); // nodeShouldBeIgnoredPtr is used in above lambda
         }
         else // no ghosts
         {
-            CalculateWithoutGhosts(in, out, ncomponents, ntuples);
+            CalculateWithoutGhosts(in, results_per_component, ncomponents, ntuples);
         }
+    }
+
+    // set results
+    for (int comp_id = 0; comp_id < ncomponents; comp_id ++)
+    {
+        const double per_comp_value = results_per_component[comp_id];
+        for (int tuple_id = 0; tuple_id < ntuples; tuple_id ++)
+        {
+            out->SetComponent(tuple_id, comp_id, per_comp_value);
+        }        
     }
 }
 

@@ -70,9 +70,9 @@ avtGlobalVarianceExpression::~avtGlobalVarianceExpression()
 
 void
 avtGlobalVarianceExpression::CalculateWithoutGhosts(vtkDataArray *in, 
-                                               vtkDataArray *out,
-                                               int ncomponents,
-                                               int ntuples)
+                                                    std::vector<double> &results_per_component,
+                                                    int ncomponents,
+                                                    int ntuples)
 {
     for (int comp_id = 0; comp_id < ncomponents; comp_id ++)
     {
@@ -98,12 +98,7 @@ avtGlobalVarianceExpression::CalculateWithoutGhosts(vtkDataArray *in,
             return intermediate_sum;
         }();
 
-        const double variance = intermediate_sum / static_cast<double>(ntuples);
-
-        for (int tuple_id = 0; tuple_id < ntuples; tuple_id ++)
-        {
-            out->SetComponent(tuple_id, comp_id, variance);
-        }
+        results_per_component[comp_id] = intermediate_sum / static_cast<double>(ntuples);
     }
 }
 
@@ -146,7 +141,7 @@ avtGlobalVarianceExpression::CalculateWithoutGhosts(vtkDataArray *in,
 
 void
 avtGlobalVarianceExpression::CalculateWithGhosts(vtkDataArray *in,
-                                                 vtkDataArray *out,
+                                                 std::vector<double> &results_per_component,
                                                  int ncomponents,
                                                  int ntuples,
                                                  int (getNodeOrCellValid)(vtkDataArray *, int *, int),
@@ -185,12 +180,7 @@ avtGlobalVarianceExpression::CalculateWithGhosts(vtkDataArray *in,
             return intermediate_sum;
         }();
 
-        const double variance = intermediate_sum / static_cast<double>(num_valid_tuples);
-
-        for (int tuple_id = 0; tuple_id < ntuples; tuple_id ++)
-        {
-            out->SetComponent(tuple_id, comp_id, variance);
-        }
+        results_per_component[comp_id] = intermediate_sum / static_cast<double>(num_valid_tuples);
     }
 }
 

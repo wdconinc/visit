@@ -70,7 +70,7 @@ avtGlobalStdDevExpression::~avtGlobalStdDevExpression()
 
 void
 avtGlobalStdDevExpression::CalculateWithoutGhosts(vtkDataArray *in, 
-                                                  vtkDataArray *out,
+                                                  std::vector<double> &results_per_component,
                                                   int ncomponents,
                                                   int ntuples)
 {
@@ -98,12 +98,7 @@ avtGlobalStdDevExpression::CalculateWithoutGhosts(vtkDataArray *in,
             return intermediate_sum;
         }();
 
-        const double std_dev = sqrt(intermediate_sum / static_cast<double>(ntuples));
-
-        for (int tuple_id = 0; tuple_id < ntuples; tuple_id ++)
-        {
-            out->SetComponent(tuple_id, comp_id, std_dev);
-        }
+        results_per_component[comp_id] = sqrt(intermediate_sum / static_cast<double>(ntuples));
     }
 }
 
@@ -146,7 +141,7 @@ avtGlobalStdDevExpression::CalculateWithoutGhosts(vtkDataArray *in,
 
 void
 avtGlobalStdDevExpression::CalculateWithGhosts(vtkDataArray *in,
-                                               vtkDataArray *out,
+                                               std::vector<double> &results_per_component,
                                                int ncomponents,
                                                int ntuples,
                                                int (getNodeOrCellValid)(vtkDataArray *, int *, int),
@@ -185,12 +180,7 @@ avtGlobalStdDevExpression::CalculateWithGhosts(vtkDataArray *in,
             return intermediate_sum;
         }();
 
-        const double std_dev = sqrt(intermediate_sum / static_cast<double>(num_valid_tuples));
-
-        for (int tuple_id = 0; tuple_id < ntuples; tuple_id ++)
-        {
-            out->SetComponent(tuple_id, comp_id, std_dev);
-        }
+        results_per_component[comp_id] = sqrt(intermediate_sum / static_cast<double>(num_valid_tuples));
     }
 }
 

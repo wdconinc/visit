@@ -70,7 +70,7 @@ avtGlobalAvgExpression::~avtGlobalAvgExpression()
 
 void
 avtGlobalAvgExpression::CalculateWithoutGhosts(vtkDataArray *in, 
-                                               vtkDataArray *out,
+                                               std::vector<double> &results_per_component,
                                                int ncomponents,
                                                int ntuples)
 {
@@ -83,11 +83,7 @@ avtGlobalAvgExpression::CalculateWithoutGhosts(vtkDataArray *in,
             sum += val;
         }
 
-        const double comp_avg = (ntuples > 0) ? sum / static_cast<double>(ntuples) : 0;
-        for (int tuple_id = 0; tuple_id < ntuples; tuple_id ++)
-        {
-            out->SetComponent(tuple_id, comp_id, comp_avg);
-        }
+        results_per_component[comp_id] = (ntuples > 0) ? sum / static_cast<double>(ntuples) : 0;
     }
 }
 
@@ -130,7 +126,7 @@ avtGlobalAvgExpression::CalculateWithoutGhosts(vtkDataArray *in,
 
 void
 avtGlobalAvgExpression::CalculateWithGhosts(vtkDataArray *in,
-                                            vtkDataArray *out,
+                                            std::vector<double> &results_per_component,
                                             int ncomponents,
                                             int ntuples,
                                             int (getNodeOrCellValid)(vtkDataArray *, int *, int),
@@ -151,11 +147,7 @@ avtGlobalAvgExpression::CalculateWithGhosts(vtkDataArray *in,
             }
         }
 
-        const double comp_avg = (num_valid_tuples > 0) ? sum / static_cast<double>(num_valid_tuples) : 0;
-        for (int tuple_id = 0; tuple_id < ntuples; tuple_id ++)
-        {
-            out->SetComponent(tuple_id, comp_id, comp_avg);
-        }
+        results_per_component[comp_id] = (num_valid_tuples > 0) ? sum / static_cast<double>(num_valid_tuples) : 0;
     }
 }
 

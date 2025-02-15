@@ -42,10 +42,14 @@ class EXPRESSION_API avtGhostAwareUnaryMathExpression : public avtUnaryMathExpre
                                                    vtkDataArray *ghostNodes);
 
   protected:
-    virtual void              CalculateWithoutGhosts(vtkDataArray *in, vtkDataArray *out,
-                                                     int ncomponents, int ntuples) = 0;
-    virtual void              CalculateWithGhosts(vtkDataArray *in, vtkDataArray *out,
-                                                  int ncomponents, int ntuples,
+    virtual void              CalculateWithoutGhosts(vtkDataArray *in, 
+                                                     std::vector<double> &results_per_component,
+                                                     int ncomponents,
+                                                     int ntuples) = 0;
+    virtual void              CalculateWithGhosts(vtkDataArray *in, 
+                                                  std::vector<double> &results_per_component,
+                                                  int ncomponents,
+                                                  int ntuples,
                                                   int (getNodeOrCellValid)(vtkDataArray *, int *, int),
                                                   vtkDataArray *ghostZones,
                                                   int *nodeShouldBeIgnoredPtr) = 0;

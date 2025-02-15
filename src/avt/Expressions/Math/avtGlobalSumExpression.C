@@ -70,7 +70,7 @@ avtGlobalSumExpression::~avtGlobalSumExpression()
 
 void
 avtGlobalSumExpression::CalculateWithoutGhosts(vtkDataArray *in, 
-                                               vtkDataArray *out,
+                                               std::vector<double> &results_per_component,
                                                int ncomponents,
                                                int ntuples)
 {
@@ -83,10 +83,7 @@ avtGlobalSumExpression::CalculateWithoutGhosts(vtkDataArray *in,
             sum += val;
         }
 
-        for (int tuple_id = 0; tuple_id < ntuples; tuple_id ++)
-        {
-            out->SetComponent(tuple_id, comp_id, sum);
-        }
+        results_per_component[comp_id] = sum;
     }
 }
 
@@ -129,7 +126,7 @@ avtGlobalSumExpression::CalculateWithoutGhosts(vtkDataArray *in,
 
 void
 avtGlobalSumExpression::CalculateWithGhosts(vtkDataArray *in,
-                                            vtkDataArray *out,
+                                            std::vector<double> &results_per_component,
                                             int ncomponents,
                                             int ntuples,
                                             int (getNodeOrCellValid)(vtkDataArray *, int *, int),
@@ -148,10 +145,7 @@ avtGlobalSumExpression::CalculateWithGhosts(vtkDataArray *in,
             }
         }
 
-        for (int tuple_id = 0; tuple_id < ntuples; tuple_id ++)
-        {
-            out->SetComponent(tuple_id, comp_id, sum);
-        }
+        results_per_component[comp_id] = sum;
     }
 }
 

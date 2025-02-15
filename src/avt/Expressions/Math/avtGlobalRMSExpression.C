@@ -70,7 +70,7 @@ avtGlobalRMSExpression::~avtGlobalRMSExpression()
 
 void
 avtGlobalRMSExpression::CalculateWithoutGhosts(vtkDataArray *in, 
-                                               vtkDataArray *out,
+                                               std::vector<double> &results_per_component,
                                                int ncomponents,
                                                int ntuples)
 {
@@ -83,12 +83,7 @@ avtGlobalRMSExpression::CalculateWithoutGhosts(vtkDataArray *in,
             sum_of_squares += pow(val, 2);
         }
 
-        const double rms = (ntuples > 0) ? sqrt(sum_of_squares / static_cast<double>(ntuples)) : 0;
-
-        for (int tuple_id = 0; tuple_id < ntuples; tuple_id ++)
-        {
-            out->SetComponent(tuple_id, comp_id, rms);
-        }
+        results_per_component[comp_id] = (ntuples > 0) ? sqrt(sum_of_squares / static_cast<double>(ntuples)) : 0;
     }
 }
 
@@ -131,7 +126,7 @@ avtGlobalRMSExpression::CalculateWithoutGhosts(vtkDataArray *in,
 
 void
 avtGlobalRMSExpression::CalculateWithGhosts(vtkDataArray *in,
-                                            vtkDataArray *out,
+                                            std::vector<double> &results_per_component,
                                             int ncomponents,
                                             int ntuples,
                                             int (getNodeOrCellValid)(vtkDataArray *, int *, int),
@@ -152,12 +147,7 @@ avtGlobalRMSExpression::CalculateWithGhosts(vtkDataArray *in,
             }
         }
 
-        const double rms = (num_valid_tuples > 0) ? sqrt(sum_of_squares / static_cast<double>(num_valid_tuples)) : 0;
-
-        for (int tuple_id = 0; tuple_id < ntuples; tuple_id ++)
-        {
-            out->SetComponent(tuple_id, comp_id, rms);
-        }
+        results_per_component[comp_id] = (num_valid_tuples > 0) ? sqrt(sum_of_squares / static_cast<double>(num_valid_tuples)) : 0;
     }
 }
 

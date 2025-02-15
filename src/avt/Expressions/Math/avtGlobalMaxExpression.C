@@ -72,7 +72,7 @@ avtGlobalMaxExpression::~avtGlobalMaxExpression()
 
 void
 avtGlobalMaxExpression::CalculateWithoutGhosts(vtkDataArray *in, 
-                                               vtkDataArray *out,
+                                               std::vector<double> &results_per_component,
                                                int ncomponents,
                                                int ntuples)
 {
@@ -89,10 +89,7 @@ avtGlobalMaxExpression::CalculateWithoutGhosts(vtkDataArray *in,
             }
         }
 
-        for (int tuple_id = 0; tuple_id < ntuples; tuple_id ++)
-        {
-            out->SetComponent(tuple_id, comp_id, comp_max);
-        }
+        results_per_component[comp_id] = comp_max;
     }
 }
 
@@ -135,7 +132,7 @@ avtGlobalMaxExpression::CalculateWithoutGhosts(vtkDataArray *in,
 
 void
 avtGlobalMaxExpression::CalculateWithGhosts(vtkDataArray *in,
-                                            vtkDataArray *out,
+                                            std::vector<double> &results_per_component,
                                             int ncomponents,
                                             int ntuples,
                                             int (getNodeOrCellValid)(vtkDataArray *, int *, int),
@@ -174,10 +171,7 @@ avtGlobalMaxExpression::CalculateWithGhosts(vtkDataArray *in,
             }
         }
 
-        for (int tuple_id = 0; tuple_id < ntuples; tuple_id ++)
-        {
-            out->SetComponent(tuple_id, comp_id, comp_max);
-        }
+        results_per_component[comp_id] = comp_max;
     }
 }
 

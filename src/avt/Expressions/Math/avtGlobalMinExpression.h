@@ -39,13 +39,17 @@ class EXPRESSION_API avtGlobalMinExpression : public avtGhostAwareUnaryMathExpre
                                               { return "Calculating min across mesh"; };
 
   protected:
-    virtual void              CalculateWithoutGhosts(vtkDataArray *in, vtkDataArray *out,
-                                                     int ncomponents, int ntuples);
-    virtual void              CalculateWithGhosts(vtkDataArray *in, vtkDataArray *out,
-                                                  int ncomponents, int ntuples,
+    virtual void              CalculateWithoutGhosts(vtkDataArray *in, 
+                                                     std::vector<double> &results_per_component,
+                                                     int ncomponents,
+                                                     int ntuples) override;
+    virtual void              CalculateWithGhosts(vtkDataArray *in, 
+                                                  std::vector<double> &results_per_component,
+                                                  int ncomponents,
+                                                  int ntuples,
                                                   int (getNodeOrCellValid)(vtkDataArray *, int *, int),
                                                   vtkDataArray *ghostZones,
-                                                  int *nodeShouldBeIgnoredPtr);
+                                                  int *nodeShouldBeIgnoredPtr) override;
 };
 
 
