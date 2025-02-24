@@ -41,7 +41,9 @@ THIRD_PARTY_INSTALL_INCLUDE(pkg incdir)
 
     `incdir1` is the full path to the headers (root of include tree if it involves multiple subdirectories).
 
-
+.. include:: ../../src/CMake/FindANARI.cmake
+    :start-line: 11
+    :end-line: 53
 
 
 
